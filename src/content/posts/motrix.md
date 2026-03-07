@@ -1,12 +1,13 @@
 ---
-title: 浏览器自带下载慢？你需要一个三方下载器Mortix！
+title: 浏览器自带下载慢？你需要一个第三方下载器 Motrix！
 published: 2025-05-26
-description: '经常使用Chromium的同学都知道，使用浏览器自带的下载模块经常没有速度，而这个时候我们便需要使用一些三方下载器，而本期推荐的Motrix是免费的开源的博主本人也在使用的高性能高颜值简约强大的下载器'
+description: '如果你觉得 Chromium 浏览器自带下载速度太慢，不妨试试免费开源、界面简洁且体验不错的第三方下载器 Motrix。'
 image: ../assets/images/ee0efba8-8c27-449f-86d0-3e9367d12463.webp
-tags: [Mortix, 下载器]
+tags: [Motrix, 下载器]
 category: '教程'
 draft: false 
 lang: ''
+ai_level: 1
 ---
 > [!ai] gemini-3-flash-preview
 > 安装Motrix并获取其RPC端口与密钥，在Chromium浏览器配置Aria2 Explorer插件对接，开启拦截后由Motrix接管下载。
@@ -15,35 +16,35 @@ lang: ''
 
 # 原理
 
-使用一个浏览器插件拦截下载请求然后将原请求发送给Motrix实现三方下载
+通过浏览器插件拦截下载请求，再将原始请求转发给 Motrix，就可以实现由 Motrix 接管下载。
 
-# 下载Motrix
+# 下载 Motrix
 
-前往官网： https://motrix.app/ 。下载Motrix
+前往官网：https://motrix.app/ 下载 Motrix。
 
-什么？你说我下载Motrix也奇慢无比？~~忍一忍就过去了~~
+如果你连下载 Motrix 都觉得慢……~~那就先忍一忍~~。
 
-当你安装完毕后应该长这样
+安装完成后，大概就是这个样子：
 
 ![](../assets/images/6a10d31c-0c39-456c-8402-ff3190a80dcc.webp)
 
-# 配置Motrix
+# 配置 Motrix
 
-打开Motrix - 进阶设置 - RPC。你可以看到RPC监听端口（默认为16800），和一个RPC授权密钥（随机的）
+打开 Motrix，进入 `进阶设置 -> RPC`。你会看到 RPC 监听端口（默认为 `16800`）和一个随机生成的 RPC 授权密钥。
 ![](../assets/images/53e255cf-965f-441d-a47a-81e20f272256.webp)
 
-我们需要记住监听端口，复制好授权密钥（点击小眼睛然后复制，旁边的骰子图标是随机一个新的密钥）。然后点击保存并应用
+记住监听端口，并复制好授权密钥（点击小眼睛后即可复制，旁边的骰子图标用于随机生成新密钥）。完成后点击“保存并应用”。
 
 # 配置浏览器
 
-> 仅支持Chromium系（如：Chrome和新版Microsoft Edge，FireFox另寻它案
+> 仅支持 Chromium 系浏览器（如 Chrome 和新版 Microsoft Edge），Firefox 请另寻方案。
 
-寻找浏览器扩展： **Aria2 Explorer**
+浏览器扩展请选择：**Aria2 Explorer**。
 
-安装，然后 右键 - 扩展选项。在这里对接Motrix的RPC设置
+安装完成后，右键扩展图标，进入“扩展选项”，在这里填入 Motrix 的 RPC 配置。
 
 ![](../assets/images/0f4a510b-378a-45ab-a35f-88cfa53593e3.webp)
 
-最后，右键扩展，勾选上下载拦截，然后尝试进行下载。如果一切顺利，浏览器的下载将被Aria2 Explorer捕获并且发送给Motrix。你可以在**Aria2 Explorer**和**Motrix**处看到下载中的文件
+最后，右键扩展并勾选“下载拦截”，然后再尝试下载文件。如果配置无误，浏览器中的下载请求会被 Aria2 Explorer 捕获并转发给 Motrix。此时你可以在 **Aria2 Explorer** 和 **Motrix** 中看到正在下载的文件。
 
 ![](../assets/images/57fa7b18-541e-4115-a160-cd742735e298.webp)

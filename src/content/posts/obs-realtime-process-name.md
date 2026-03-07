@@ -1,7 +1,7 @@
 ---
 title: 如何在直播中让你的观众实时了解你在用什么软件？
 published: 2026-03-08T03:19:43
-description: 将当前运行的进程名称和需要监视的目标进程名称写入TXT中，以便在OBS Studio中导入以给观众呈现当前您的电脑正在使用的软件
+description: 通过持续监测当前前台进程和指定程序的窗口标题，并将结果写入 TXT 文件，就可以让 OBS 实时向观众展示你正在使用的软件或当前播放的内容。
 image: ../assets/images/OBS-RT-PC.png
 draft: false
 lang: ""
@@ -36,11 +36,11 @@ ai_level: 1
 
 而 OBS 的文字源恰好支持 **从文件读取**。既然如此，思路就一下子清晰了：
 
-只要让 OBS 持续读取一个 TXT 文件，再写一个小程序负责不断改写这个 TXT，不就行了吗？
+只要让 OBS 持续读取一个 TXT 文件，再写一个小程序不断更新这个 TXT，不就可以了吗？
 
 ![](../assets/images/obs-realtime-process-name.png)
 
-完全可行。实测 OBS 会每隔几秒重新读取一次 TXT 内容。虽然它不是即时 Hook，而只是简单轮询，但对于“当前正在使用什么软件”这类信息来说，已经完全够用了。
+这个思路完全可行。实测下来，OBS 会每隔几秒重新读取一次 TXT 内容。虽然它不是即时 Hook，而是简单轮询，但对于“当前正在使用什么软件”这类信息来说，已经完全够用了。
 
 ![](../assets/images/obs64_ZV5MPVYEXj.gif)
 
@@ -58,7 +58,7 @@ ai_level: 1
 
 整个方案落地下来，其实只需要在 OBS 里额外添加两个文字源即可。
 
-于是，这个项目就这样诞生了：
+于是，这个小项目就这样诞生了：
 
 [afoim/process_watch2txt: 将当前运行的进程名称和需要监视的目标进程名称写入TXT中，以便在OBS Studio中导入以给观众呈现当前您的电脑正在使用的软件](https://github.com/afoim/process_watch2txt)
 

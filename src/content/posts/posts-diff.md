@@ -1,10 +1,11 @@
 ---
 title: 如何给你的文章上修订记录？就像维基百科那样！
 published: 2026-02-11T10:51:13
-description: 尽管我们已经做了基于客户端的文章更新系统，但如果用户还没来及查看更改就又有新的更改了呢？我们能不能做全生命周期的文章diff？
+description: 虽然我们已经做了基于客户端的文章更新提醒，但如果读者还没来得及查看上一次改动，文章又发生了新的变化呢？这时候，就需要一套覆盖完整生命周期的文章 diff 展示方案。
 image: ../assets/images/posts-diff.png
 draft: false
 lang: ""
+ai_level: 2
 ---
 > [!ai] gemini-3-flash-preview
 > 利用Git版本控制系统读取文章修订历史，通过编写脚本在网站构建阶段生成更改索引JSON文件。针对Cloudflare CI构建环境默认缺失Git历史的问题，采用在构建命令中重新克隆完整仓库并提取索引文件的方案，实现了文章更新明细的自动化生成与生产环境展示。
@@ -12,13 +13,13 @@ lang: ""
 
 # 正式开始
 
-在之前，我们给博客添加了一个文章更新提醒功能，也就是博客右下角的小铃铛图标，它可以通过比较上次与这次访问文章是否有更新给你一个醒目的提示，并直观地告诉你都更新了哪些文章和更新什么内容
+此前，我们给博客加过一个文章更新提醒功能，也就是右下角的小铃铛图标。它可以通过比较你上次访问和这次访问之间的差异，给出醒目的提示，并告诉你哪些文章发生了更新、更新了什么内容。
 
 ![](../assets/images/posts-diff-1.png)
 
-但我们还想更进一步，能不能让读者，也就是你能看到我们每次更新文章的明细呢
+但我们还想再进一步：能不能让读者直接看到每次文章更新的具体明细呢？
 
-当然可以！由于我们使用Git做版本控制，Git可以天然的读取到每一篇文章的修订情况
+当然可以。由于我们使用 Git 做版本控制，因此天然就能读取每一篇文章的修订历史。
 
 ```sql
 (TraeAI-5) C:\Users\af\Documents\GitHub\fuwari [1:128] $ git log src/content/posts/pin.md
@@ -96,9 +97,9 @@ Date:   Thu Jan 15 16:04:10 2026 +0800
 :
 ```
 
-那么我们就可以让网站在构建出来时插入一个中间件，读取Git的提交历史，并生成一个文章更改索引文件，之后再插入到最终网站中即可
+因此，我们完全可以在网站构建阶段增加一道处理流程：读取 Git 提交历史，生成文章更改索引文件，再把它放进最终产物中。
 
-那么理论成立，实践开始！
+思路成立之后，就可以开始动手实践了。
 
 ```sql
 (TraeAI-5) C:\Users\af\Documents\GitHub\fuwari [0:141] $ pnpm update-diff
@@ -113,23 +114,23 @@ Git history generated for 154 files.
 Output saved to src/json/git-history.json
 ```
 
-ok，成功生成了索引，让我们看看实际的内容
+很好，索引已经成功生成。接下来看看实际效果。
 
 ![](../assets/images/posts-diff-2.png)
 
-很好，接下来让我们尝试在开发环境中测试
+接下来，再在开发环境里验证一下。
 
 ![](../assets/images/posts-diff-3.png)
 
-ok！也没什么问题，接下来我们开始做自动化
+结果也没有问题，接下来就可以开始做自动化了。
 
-由于我们使用Cloudflare Worker连接Github仓库进行CI，我们需要在构建环节注入这个生成文章diff的逻辑
+由于我使用 Cloudflare Worker 连接 GitHub 仓库进行 CI，因此需要把生成文章 diff 的逻辑注入到构建流程中。
 
-一开始我是直接想将构建命令从 `pnpm build` 改为 `pnpm update-diff && pnpm build` 
+一开始，我的想法很直接：把构建命令从 `pnpm build` 改成 `pnpm update-diff && pnpm build`。
 
-但是转念一想，Cloudflare Worker克隆仓库时并不会带历史，也就自然无法得到完整的文章diff
+但转念一想，Cloudflare Worker 在克隆仓库时默认并不带完整历史，因此自然也拿不到完整的文章 diff。
 
-那么我们是否能曲线救国呢？大抵是可以的，于是我让ChatGPT写了一个难绷的构建命令
+那有没有“曲线救国”的办法呢？答案是有的。于是我让 ChatGPT 帮我草拟了一条稍显冗长、但确实可用的构建命令。
 
 ```sql
 git clone https://github.com/afoim/fuwari temp \
@@ -144,18 +145,18 @@ git clone https://github.com/afoim/fuwari temp \
 
 ```
 
-仔细分析一下其实逻辑非常简单
+仔细分析一下，这段命令的逻辑其实并不复杂。
 
-由于Cloudflare Worker默认克隆的仓库不带提交历史，那么我们就再重新克隆一个完整的带提交历史的仓库，再生成文章diff索引，将这个索引文件复制回CF自动克隆的仓库，之后再清除我们自己克隆的仓库，最后运行原构建命令
+由于 Cloudflare Worker 默认克隆到的仓库没有提交历史，所以我们就额外再克隆一个带完整历史的仓库，在里面生成文章 diff 索引；随后把这个索引文件复制回 Cloudflare 自动克隆的仓库，再清理掉临时仓库，最后执行原本的构建命令。
 
-虽然看着很难绷，网页控制台被塞入了一大段神秘命令
+虽然看起来有点“堆命令”，网页控制台里也会出现一大段神秘脚本：
 
 ![](../assets/images/posts-diff-4.png)
 
-但是它的确可以很好的工作，这就够了
+但它确实能稳定工作，这就已经足够了。
 
 ![](../assets/images/posts-diff-5.png)
 
-最终，我们只需要专注于写文章与推送到Github，Cloudflare会帮我们自动生成最新的文章diff，并展示在生产环境！
+最终，我们只需要专注于写文章并推送到 GitHub，Cloudflare 就会自动生成最新的文章 diff，并把它展示在生产环境中。
 
 ![](../assets/images/posts-diff-6.png)
