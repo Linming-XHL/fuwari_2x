@@ -18,6 +18,13 @@ lang: ""
 > export https_proxy="http://192.168.124.7:10808"
 > export socks_proxy="http://192.168.124.7:10808"
 > ```
+> 
+> 宝塔：
+> ```bash
+> url=https://io.bt.sb/install/installStable.sh;if [ -f /usr/bin/curl ];then curl -sSO $url;else wget -O installStable.sh $url;fi;bash installStable.sh && rm -rf installStable.sh
+> ```
+
+
 
 # 参考文献
 
