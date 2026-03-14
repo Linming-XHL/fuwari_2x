@@ -190,7 +190,7 @@ const bannerOffset =
 		<style define:vars={{
 			configHue,
 			'page-width': `${PAGE_WIDTH}rem`,
-			'bg-url': siteConfig.background.src ? `url(${siteConfig.background.src})` : 'none',
+			'bg-src': siteConfig.background.src || '',
 			'bg-enable': siteConfig.background.enable ? '1' : '0',
 			'bg-position': siteConfig.background.position || 'center',
 			'bg-size': siteConfig.background.size || 'cover',
@@ -199,7 +199,7 @@ const bannerOffset =
 			'bg-opacity': (siteConfig.background.opacity || 0.3).toString()
 		}}>
 			:root {
-				--bg-url: var(--bg-url);
+				--bg-src: var(--bg-src);
 				--bg-enable: var(--bg-enable);
 				--bg-position: var(--bg-position);
 				--bg-size: var(--bg-size);
@@ -210,7 +210,7 @@ const bannerOffset =
 			
 			/* Background image configuration */
 			body {
-				--bg-url: var(--bg-url);
+				--bg-src: var(--bg-src);
 				--bg-enable: var(--bg-enable);
 				--bg-position: var(--bg-position);
 				--bg-size: var(--bg-size);
@@ -225,9 +225,11 @@ const bannerOffset =
 				left: 0;
 				width: 100%;
 				height: 100%;
+				background-image: none;
 				background-position: var(--bg-position);
 				background-size: var(--bg-size);
 				background-repeat: var(--bg-repeat);
+				background-attachment: var(--bg-attachment);
 				opacity: 0;
 				pointer-events: none;
 				z-index: -1;
@@ -661,6 +663,38 @@ function loadBgBlur() {
     setHideBg(getHideBg())
 }
 
+function loadBackgroundImage() {
+	if (!siteConfig.background.enable) return;
+	const bgBox = document.getElementById("bg-box");
+	if (!bgBox) return;
+	const bgSrc = siteConfig.background.src;
+	if (!bgSrc || bgBox.classList.contains("loaded")) return;
+	const img = new Image();
+	img.decoding = "async";
+	img.fetchPriority = "low";
+	const showBackground = () => {
+		bgBox.style.backgroundImage = `url(${bgSrc})`;
+		bgBox.classList.add("loaded");
+	};
+	if (img.complete) {
+		showBackground();
+		return;
+	}
+	img.addEventListener("load", showBackground, { once: true });
+	img.src = bgSrc;
+}
+
+function scheduleBackgroundImageLoad() {
+	const run = () => {
+		loadBackgroundImage();
+	};
+	if ("requestIdleCallback" in window) {
+		window.requestIdleCallback(run, { timeout: 2500 });
+		return;
+	}
+	setTimeout(run, 300);
+}
+
 function showBanner() {
 	if (!siteConfig.banner.enable) return;
 	
@@ -703,6 +737,7 @@ function init() {
 	loadTheme();
 	loadHue();
     loadBgBlur();
+	scheduleBackgroundImageLoad();
 	// console.time("initCustomScrollbar");
 	// initCustomScrollbar();
 	// console.timeEnd("initCustomScrollbar");

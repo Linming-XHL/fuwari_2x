@@ -15,12 +15,21 @@ interface SearchResult {
 	matchCount: number;
 }
 
+interface SearchPost {
+	title: string;
+	description: string;
+	content: string;
+	link: string;
+}
+
 let keywordDesktop = "";
 let keywordMobile = "";
 let result: SearchResult[] = [];
 let isSearching = false;
-// biome-ignore lint/suspicious/noExplicitAny: Temporary usage of any for posts array
-let posts: any[] = [];
+let posts: SearchPost[] = [];
+let hasLoadedPosts = false;
+let isLoadingPosts = false;
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
 const searchTypes = [
 	{ id: "title", label: "标题" },
@@ -48,16 +57,19 @@ const toggleType = (typeId: string) => {
 };
 
 const togglePanel = () => {
+	if (typeof document === "undefined") return;
 	const panel = document.getElementById("search-panel");
 	panel?.classList.toggle("float-panel-closed");
 };
 
 const closePanel = () => {
+	if (typeof document === "undefined") return;
 	const panel = document.getElementById("search-panel");
 	panel?.classList.add("float-panel-closed");
 };
 
 const setPanelVisibility = (show: boolean, isDesktop: boolean): void => {
+	if (typeof document === "undefined") return;
 	const panel = document.getElementById("search-panel");
 	if (!panel || !isDesktop) return;
 
@@ -66,6 +78,77 @@ const setPanelVisibility = (show: boolean, isDesktop: boolean): void => {
 	} else {
 		panel.classList.add("float-panel-closed");
 	}
+};
+
+const loadPostsFromRss = async (): Promise<SearchPost[]> => {
+	const response = await fetch("/rss.xml");
+	const text = await response.text();
+	const parser = new DOMParser();
+	const xml = parser.parseFromString(text, "text/xml");
+	const items = xml.querySelectorAll("item");
+
+	return Array.from(items).map((item) => {
+		let content = "";
+		const contentEncoded =
+			item.getElementsByTagNameNS("*", "encoded")[0]?.textContent ||
+			item.querySelector("*|encoded")?.textContent ||
+			"";
+
+		if (contentEncoded) {
+			content = contentEncoded.replace(/<[^>]*>/g, "");
+		}
+
+		return {
+			title: item.querySelector("title")?.textContent || "",
+			description: item.querySelector("description")?.textContent || "",
+			content,
+			link:
+				item
+					.querySelector("link")
+					?.textContent?.replace(/.*\/posts\/(.*?)\//, "$1") || "",
+		};
+	});
+};
+
+const ensurePostsLoaded = async (): Promise<void> => {
+	if (hasLoadedPosts || isLoadingPosts) return;
+	isLoadingPosts = true;
+
+	try {
+		const cached = sessionStorage.getItem("search-posts-cache");
+		if (cached) {
+			posts = JSON.parse(cached) as SearchPost[];
+			hasLoadedPosts = true;
+			return;
+		}
+
+		try {
+			const response = await fetch("/search.json");
+			if (response.ok) {
+				posts = (await response.json()) as SearchPost[];
+			} else {
+				posts = await loadPostsFromRss();
+			}
+		} catch {
+			posts = await loadPostsFromRss();
+		}
+
+		hasLoadedPosts = true;
+		sessionStorage.setItem("search-posts-cache", JSON.stringify(posts));
+	} catch (error) {
+		console.error("Error loading search data:", error);
+		posts = [];
+		hasLoadedPosts = true;
+	} finally {
+		isLoadingPosts = false;
+	}
+};
+
+const scheduleSearchDataPreload = (): void => {
+	if (typeof window === "undefined") return;
+	window.setTimeout(() => {
+		void ensurePostsLoaded();
+	}, 300);
 };
 
 const search = async (
@@ -173,47 +256,31 @@ const search = async (
 	}
 };
 
-onMount(async () => {
-	try {
-		const response = await fetch("/rss.xml");
-		const text = await response.text();
-		const parser = new DOMParser();
-		const xml = parser.parseFromString(text, "text/xml");
-		const items = xml.querySelectorAll("item");
-
-		posts = Array.from(items).map((item) => {
-			// 尝试多种方式获取content:encoded内容
-			let content = "";
-			const contentEncoded =
-				item.getElementsByTagNameNS("*", "encoded")[0]?.textContent ||
-				item.querySelector("*|encoded")?.textContent ||
-				"";
-
-			if (contentEncoded) {
-				content = contentEncoded.replace(/<[^>]*>/g, "");
-			}
-
-			return {
-				title: item.querySelector("title")?.textContent || "",
-				description: item.querySelector("description")?.textContent || "",
-				content: content,
-				link:
-					item
-						.querySelector("link")
-						?.textContent?.replace(/.*\/posts\/(.*?)\//, "$1") || "",
-			};
-		});
-	} catch (error) {
-		console.error("Error fetching RSS:", error);
-	}
+onMount(() => {
+	scheduleSearchDataPreload();
 });
 
 $: {
 	if (keywordDesktop) {
-		search(keywordDesktop, true, selectedTypes);
+		if (searchTimer) {
+			clearTimeout(searchTimer);
+		}
+		searchTimer = setTimeout(async () => {
+			await ensurePostsLoaded();
+			await search(keywordDesktop, true, selectedTypes);
+		}, 120);
 	} else if (keywordMobile) {
-		search(keywordMobile, false, selectedTypes);
+		if (searchTimer) {
+			clearTimeout(searchTimer);
+		}
+		searchTimer = setTimeout(async () => {
+			await ensurePostsLoaded();
+			await search(keywordMobile, false, selectedTypes);
+		}, 120);
 	} else {
+		if (searchTimer) {
+			clearTimeout(searchTimer);
+		}
 		result = [];
 		setPanelVisibility(false, true);
 	}
@@ -225,7 +292,7 @@ $: {
       bg-white/5 hover:bg-white/10 focus-within:bg-white/10
 ">
     <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-white/30"></Icon>
-    <input placeholder="搜索" bind:value={keywordDesktop} on:focus={() => search(keywordDesktop, true, selectedTypes)}
+    <input placeholder="搜索" bind:value={keywordDesktop} on:focus={() => void ensurePostsLoaded()}
            class="transition-all pl-10 text-sm bg-transparent outline-0
          h-full w-40 active:w-60 focus:w-60 text-white/50"
     >
@@ -246,7 +313,7 @@ top-20 left-4 md:left-[unset] right-4 shadow-none rounded-2xl p-2">
       bg-white/5 hover:bg-white/10 focus-within:bg-white/10
   ">
         <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-white/30"></Icon>
-        <input placeholder="Search" bind:value={keywordMobile}
+        <input placeholder="搜索" bind:value={keywordMobile} on:focus={() => void ensurePostsLoaded()}
                class="pl-10 absolute inset-0 text-sm bg-transparent outline-0
                focus:w-60 text-white/50"
         >
