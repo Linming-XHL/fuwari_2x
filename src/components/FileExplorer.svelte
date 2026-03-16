@@ -1,5 +1,9 @@
 <script lang="ts">
 import Icon from "@iconify/svelte";
+import { addCollection } from "@iconify/svelte";
+import materialSymbols from "@iconify-json/material-symbols/icons.json";
+
+addCollection(materialSymbols);
 
 interface FileItem {
 	name: string;
