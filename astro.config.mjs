@@ -205,7 +205,13 @@ export default defineConfig({
 		icon({
 			iconDir: "public/icons",
 		}),
-		svelte(),
+		svelte({
+			compilerOptions: {
+				compatibility: {
+					componentApi: 4,
+				},
+			},
+		}),
 		expressiveCode({
 			themes: [expressiveCodeConfig.theme, expressiveCodeConfig.theme],
 			plugins: [
