@@ -1,8 +1,9 @@
 <script lang="ts">
 	import Icon from "@iconify/svelte";
 	import ForumMarkdownContent from "@/components/forum/ForumMarkdownContent.svelte";
-	import { likeComment } from "@/forum/api/comments";
+	import { deleteComment, likeComment } from "@/forum/api/comments";
 	import type { ForumComment } from "@/forum/types/comment";
+	import type { ForumUser } from "@/forum/types/user";
 
 	export let comment: ForumComment;
 	export let activeReplyParentId: string | null = null;
@@ -13,6 +14,8 @@
 	export let onReplySubmit: (comment: ForumComment) => void;
 	export let onReplyEscape: () => void;
 	export let onCommentPatched: (commentId: string, patch: Partial<ForumComment>) => void;
+	export let currentUser: ForumUser | null = null;
+	export let onCommentDeleted: () => void = () => {};
 
 	function formatDate(value?: string) {
 		if (!value) return "刚刚";
@@ -24,6 +27,35 @@
 	}
 
 	let likeBusy = false;
+	let deleteBusy = false;
+
+	function normalizeRole(role?: string) {
+		if (!role) {
+			return "";
+		}
+		const normalizedRole = role.trim().toLowerCase();
+		return ["admin", "administrator", "root", "superadmin", "super_admin"].includes(normalizedRole) ? "admin" : normalizedRole;
+	}
+
+	$: canDeleteComment = Boolean(
+		currentUser && (normalizeRole(currentUser.role) === "admin" || Boolean(comment.author?.id && currentUser.id === comment.author.id)),
+	);
+
+	async function handleDelete() {
+		if (!canDeleteComment || deleteBusy) return;
+		if (typeof window !== "undefined" && !window.confirm("确定要删除这条评论吗？删除后不可恢复。")) {
+			return;
+		}
+		deleteBusy = true;
+		try {
+			await deleteComment(comment.id);
+			onCommentDeleted();
+		} catch (error) {
+			console.error(error);
+		} finally {
+			deleteBusy = false;
+		}
+	}
 
 	async function toggleLike() {
 		if (likeBusy) return;
@@ -82,6 +114,12 @@
 					<span>{activeReplyParentId === comment.id ? "收起回复" : "回复"}</span>
 				</button>
 			{/if}
+			{#if canDeleteComment}
+				<button class="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-white/55 transition hover:border-white/20 hover:text-red-300 disabled:opacity-60" disabled={deleteBusy} on:click={handleDelete}>
+					<Icon icon="material-symbols:delete-outline-rounded" />
+					<span>{deleteBusy ? "删除中" : "删除"}</span>
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -104,6 +142,8 @@
 					{onReplySubmit}
 					{onReplyEscape}
 					{onCommentPatched}
+					{currentUser}
+					onCommentDeleted={onCommentDeleted}
 				>
 					<div slot="reply-editor">
 						<slot name="reply-editor" />

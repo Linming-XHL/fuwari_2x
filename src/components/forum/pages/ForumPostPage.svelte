@@ -6,10 +6,13 @@
 	import ForumMarkdownContent from "@/components/forum/ForumMarkdownContent.svelte";
 	import ForumMarkdownEditor from "@/components/forum/ForumMarkdownEditor.svelte";
 	import { createComment, getComments } from "@/forum/api/comments";
+	import { getSession } from "@/forum/api/auth";
 	import { getPost, likePost } from "@/forum/api/posts";
 	import { forumAuth } from "@/forum/stores/auth";
+	import { ForumApiError } from "@/forum/types/api";
 	import type { ForumComment } from "@/forum/types/comment";
 	import type { ForumPostDetail } from "@/forum/types/post";
+	import type { ForumUser } from "@/forum/types/user";
 	import { renderForumMarkdown } from "@/forum/utils/markdown";
 
 	export let postId = "";
@@ -26,6 +29,9 @@
 	let commentStatus = "";
 	let activeReplyParentId: string | null = null;
 	let hasToken = false;
+	let currentUser: ForumUser | null = null;
+	let authReady = false;
+	let canEditPost = false;
 
 	function formatDate(value?: string) {
 		if (!value) return "刚刚";
@@ -150,6 +156,12 @@
 		comments = patchCommentInTree(comments, commentId, patch);
 	}
 
+	async function handleCommentDeleted() {
+		commentStatus = "正在刷新评论列表...";
+		await loadComments();
+		commentStatus = "评论已删除。";
+	}
+
 	function resolvePostId() {
 		if (postId) {
 			return postId;
@@ -160,12 +172,57 @@
 		return new URLSearchParams(window.location.search).get("id") || "";
 	}
 
+	function normalizeRole(role?: string) {
+		if (!role) {
+			return "";
+		}
+		const normalizedRole = role.trim().toLowerCase();
+		return ["admin", "administrator", "root", "superadmin", "super_admin"].includes(normalizedRole) ? "admin" : normalizedRole;
+	}
+
+	function isCurrentUserAdmin(user: ForumUser | null) {
+		return normalizeRole(user?.role) === "admin";
+	}
+
+	$: canEditPost = Boolean(post && authReady && currentUser && (isCurrentUserAdmin(currentUser) || Boolean(post.authorId && currentUser.id === post.authorId)));
+
+	async function ensureCurrentUser() {
+		const state = get(forumAuth);
+		hasToken = Boolean(forumAuth.getToken()) || Boolean(state.token);
+		currentUser = state.user;
+		authReady = Boolean(!hasToken || state.user);
+		if (!hasToken || state.user) {
+			return;
+		}
+		try {
+			const session = await getSession();
+			forumAuth.setSession(session);
+			currentUser = session.user;
+			hasToken = Boolean(session.token || forumAuth.getToken());
+		} catch (error) {
+			if (error instanceof ForumApiError && error.status === 401) {
+				forumAuth.clear();
+				hasToken = false;
+				currentUser = null;
+			} else {
+				console.error(error);
+			}
+		} finally {
+			authReady = true;
+		}
+	}
+
 	onMount(() => {
 		postId = resolvePostId();
 		hasToken = Boolean(forumAuth.getToken()) || Boolean(get(forumAuth).token);
+		currentUser = get(forumAuth).user;
+		authReady = Boolean(!hasToken || currentUser);
 		const unsubscribe = forumAuth.subscribe((state) => {
 			hasToken = Boolean(state.token);
+			currentUser = state.user;
+			authReady = Boolean(!state.token || state.user);
 		});
+		void ensureCurrentUser();
 		if (postId) {
 			loadPost();
 			loadComments();
@@ -208,6 +265,9 @@
 					</div>
 					<div class="flex flex-wrap gap-3">
 						<a href="/forum/" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-white/60">返回论坛首页</a>
+						{#if canEditPost}
+							<a href={`/forum/edit/?id=${encodeURIComponent(post.id)}`} class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-white/75">编辑帖子</a>
+						{/if}
 						<div class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-white/60">
 							<div class="flex items-center gap-2">
 								<Icon icon="material-symbols:visibility-outline-rounded" class="text-[var(--primary)]" />
@@ -267,6 +327,8 @@
 				onReplySubmit={(comment) => submitComment(comment.id)}
 				onReplyEscape={() => setReplyTarget(null)}
 				onCommentPatched={patchComment}
+				currentUser={currentUser}
+				onCommentDeleted={handleCommentDeleted}
 			/>
 		</section>
 	</div>

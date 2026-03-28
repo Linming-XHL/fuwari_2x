@@ -5,6 +5,8 @@ interface RawCommentRecord {
 	id: string | number;
 	post_id?: string | number;
 	parent_id?: string | number | null;
+	author_id?: string | number;
+	user_id?: string | number;
 	content?: string;
 	username?: string;
 	avatar_url?: string | null;
@@ -28,9 +30,9 @@ function normalizeComment(comment: RawCommentRecord): ForumComment {
 		postId: comment.post_id !== undefined ? String(comment.post_id) : "",
 		parentId: comment.parent_id !== undefined && comment.parent_id !== null ? String(comment.parent_id) : null,
 		content: comment.content || "",
-		author: comment.username || comment.avatar_url
+		author: comment.username || comment.avatar_url || comment.author_id !== undefined || comment.user_id !== undefined
 			? {
-				id: "",
+				id: comment.author_id !== undefined ? String(comment.author_id) : comment.user_id !== undefined ? String(comment.user_id) : "",
 				username: comment.username || "匿名用户",
 				displayName: comment.username || "匿名用户",
 				avatarUrl: comment.avatar_url || undefined,

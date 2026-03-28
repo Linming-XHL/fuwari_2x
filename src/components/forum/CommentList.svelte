@@ -16,6 +16,8 @@
 	export let onReplySubmit: (comment: ForumComment) => void = () => {};
 	export let onReplyEscape: () => void = () => {};
 	export let onCommentPatched: (commentId: string, patch: Partial<ForumComment>) => void = () => {};
+	export let currentUser = null;
+	export let onCommentDeleted: () => void = () => {};
 
 	function buildCommentTree(flatComments: ForumComment[]) {
 		const map = new Map<string, ForumComment>();
@@ -63,6 +65,8 @@
 				{onReplySubmit}
 				{onReplyEscape}
 				{onCommentPatched}
+				{currentUser}
+				onCommentDeleted={onCommentDeleted}
 			>
 				<div slot="reply-editor" class="space-y-3">
 					<ForumMarkdownEditor

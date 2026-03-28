@@ -49,6 +49,13 @@ interface RawCreatePostResult {
 	data?: RawPostRecord;
 }
 
+interface RawUpdatePostResult {
+	success?: boolean;
+	id?: string | number | null;
+	post?: RawPostRecord;
+	data?: RawPostRecord;
+}
+
 function normalizePost(post: RawPostRecord): ForumPostSummary {
 	const coverImageUrl = extractFirstImageUrlFromMarkdown(post.content) || extractFirstImageUrlFromMarkdown(post.excerpt);
 
@@ -153,9 +160,33 @@ export async function createPost(payload: ForumPostInput) {
 			title: payload.title,
 			content: payload.content,
 			categoryId: payload.categoryId,
+			excerpt: payload.excerpt,
 		} satisfies ForumPostDetail;
 	}
 	throw new Error("发帖成功，但未拿到帖子 ID");
+}
+
+export async function updatePost(id: string, payload: ForumPostInput) {
+	const result = await forumRequest<RawUpdatePostResult>(`/api/posts/${id}`, {
+		method: "PUT",
+		requiresAuth: true,
+		json: payload,
+	});
+	const post = result.post || result.data;
+	if (post) {
+		return normalizePost(post) as ForumPostDetail;
+	}
+	const nextId = result.id ?? id;
+	if (nextId !== undefined && nextId !== null && nextId !== "") {
+		return {
+			id: String(nextId),
+			title: payload.title,
+			content: payload.content,
+			categoryId: payload.categoryId,
+			excerpt: payload.excerpt,
+		} satisfies ForumPostDetail;
+	}
+	throw new Error("保存成功，但未拿到帖子 ID");
 }
 
 export function deletePost(id: string) {
