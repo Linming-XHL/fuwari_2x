@@ -16,6 +16,7 @@
 	} from "@/forum/api/auth";
 	import { forumAuth } from "@/forum/stores/auth";
 	import type { ForumUser } from "@/forum/types/user";
+	import { compressAvatarImage } from "@/forum/utils/image-compression";
 
 	let user: ForumUser | null = null;
 	let loading = true;
@@ -156,9 +157,16 @@
 		const file = input.files?.[0];
 		input.value = "";
 		if (!file || !user) return;
-		status = "正在上传头像...";
+		status = "正在压缩头像...";
 		try {
-			const uploadedUrl = await uploadAvatar(file);
+			let uploadFileTarget = file;
+			try {
+				uploadFileTarget = await compressAvatarImage(file);
+			} catch {
+				uploadFileTarget = file;
+			}
+			status = uploadFileTarget === file ? "正在上传头像..." : "正在上传压缩后的头像...";
+			const uploadedUrl = await uploadAvatar(uploadFileTarget);
 			avatarUrl = uploadedUrl;
 			status = "头像上传成功，请记得保存资料。";
 		} catch (error) {

@@ -48,6 +48,7 @@
 		"astro": "5.7.9",
 		"astro-expressive-code": "^0.41.3",
 		"astro-icon": "^1.1.5",
+		"browser-image-compression": "^2.0.2",
 		"diff": "^8.0.3",
 		"dotenv": "^17.3.1",
 		"imagesloaded": "^5.0.0",

@@ -3,6 +3,7 @@
 	import Editor from "@toast-ui/editor";
 	import { ForumApiError } from "@/forum/types/api";
 	import { uploadFile, type ForumUploadType } from "@/forum/api/auth";
+	import { compressPostImage, isPostImageWithinLimit, POST_IMAGE_MAX_BYTES } from "@/forum/utils/image-compression";
 
 	type EditorMode = "post" | "comment" | "reply";
 
@@ -18,7 +19,7 @@
 		reply: [["bold", "italic"], ["quote", "link", "image"], ["code", "codeblock"]],
 	};
 
-	const MAX_UPLOAD_SIZE = 500 * 1024;
+	const MAX_UPLOAD_SIZE_LABEL = `${Math.round(POST_IMAGE_MAX_BYTES / 1024)}KB`;
 
 	export let value = "";
 	export let placeholder = "支持 Markdown";
@@ -94,24 +95,36 @@
 			return;
 		}
 
-		if (blob.size > MAX_UPLOAD_SIZE) {
-			uploadStatus = "图片不能超过 500KB。";
-			return;
-		}
-
 		uploading = true;
-		uploadStatus = "正在上传图片...";
+		uploadStatus = "正在压缩图片...";
+
+		let uploadFileTarget = blob;
 
 		try {
+			try {
+				uploadFileTarget = await compressPostImage(blob);
+			} catch (error) {
+				if (!isPostImageWithinLimit(blob)) {
+					throw new Error(`图片压缩失败，且原图仍超过 ${MAX_UPLOAD_SIZE_LABEL} 限制。`);
+				}
+				uploadFileTarget = blob;
+			}
+
+			if (!isPostImageWithinLimit(uploadFileTarget)) {
+				uploadStatus = `压缩后图片仍超过 ${MAX_UPLOAD_SIZE_LABEL}，请更换更小的图片。`;
+				return;
+			}
+
+			uploadStatus = uploadFileTarget === blob ? "正在上传图片..." : "正在上传压缩后的图片...";
 			const url = await uploadFile({
-				file: blob,
+				file: uploadFileTarget,
 				type: uploadType,
 				postId: uploadPostId || undefined,
 			});
 			if (!url) {
 				throw new Error("上传成功，但未获取到图片地址。");
 			}
-			callback(url, blob.name || "image");
+			callback(url, uploadFileTarget.name || blob.name || "image");
 			uploadStatus = "图片已上传并插入。";
 			syncValue(editor?.getMarkdown() || "");
 		} catch (error) {
@@ -192,12 +205,13 @@
 	<div bind:this={containerEl} />
 	<div class="flex items-center justify-between gap-3 px-1 text-xs text-white/35">
 		<span>{uploadStatus || "Markdown 左右分栏预览，体验接近 Obsidian。"}</span>
-		<span>{uploading ? "图片上传中..." : submitHint}</span>
+		<span>{uploading ? "图片处理中..." : submitHint}</span>
 	</div>
 </div>
 
 <style>
 	:global(.forum-editor-shell .toastui-editor-defaultUI) {
+		zoom: 0.7;
 		border-radius: 1rem;
 		overflow: hidden;
 		border: 1px solid rgb(255 255 255 / 0.1);
