@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import Icon from "@iconify/svelte";
+	import QRCode from "qrcode";
 	import { emitErrorToast, emitSuccessToast } from "@/forum/utils/toast";
 	import {
 		changeEmail,
 		deleteAccount,
+		disableTotp,
 		getCurrentUser,
 		logout,
 		setupTotp,
@@ -33,7 +35,10 @@
 
 	let totpSecret = "";
 	let totpUri = "";
+	let totpQrDataUrl = "";
 	let totpCode = "";
+	let disableTotpPassword = "";
+	let disableTotpCode = "";
 
 	let deletePassword = "";
 	let deleteTotp = "";
@@ -86,6 +91,29 @@
 
 	function getErrorMessage(error: unknown, fallback: string) {
 		return error instanceof Error ? error.message : fallback;
+	}
+
+	function normalizeTotpUriTitle(uri: string) {
+		try {
+			const parsed = new URL(uri);
+			if (parsed.protocol !== "otpauth:") {
+				return uri;
+			}
+			const accountName = parsed.pathname.startsWith("/") ? parsed.pathname.slice(1).split(":").slice(1).join(":") : "";
+			parsed.pathname = `/${encodeURIComponent(`AcoFork Forum${accountName ? `:${accountName}` : ""}`)}`;
+			parsed.searchParams.set("issuer", "AcoFork Forum");
+			return parsed.toString();
+		} catch {
+			return uri;
+		}
+	}
+
+	async function generateTotpQrDataUrl(uri: string) {
+		return QRCode.toDataURL(uri, {
+			width: 224,
+			margin: 1,
+			errorCorrectionLevel: "M",
+		});
 	}
 
 	async function refreshSession(statusMessage?: string) {
@@ -194,7 +222,15 @@
 		try {
 			const result = await setupTotp();
 			totpSecret = result.secret;
-			totpUri = result.uri;
+			totpUri = normalizeTotpUriTitle(result.uri);
+			totpQrDataUrl = "";
+			if (totpUri) {
+				try {
+					totpQrDataUrl = await generateTotpQrDataUrl(totpUri);
+				} catch {
+					emitErrorToast("双重验证（2FA）", "二维码生成失败，请改用下方密钥或 URI 手动添加。");
+				}
+			}
 			emitSuccessToast("双重验证（2FA）", "请使用验证器录入密钥后输入验证码完成启用。");
 		} catch (error) {
 			emitErrorToast("双重验证（2FA）", getErrorMessage(error, "2FA 初始化失败。"));
@@ -210,10 +246,40 @@
 			await verifyTotp({ token: totpCode.trim() });
 			totpSecret = "";
 			totpUri = "";
+			totpQrDataUrl = "";
 			totpCode = "";
 			await refreshSession("2FA 已启用。");
 		} catch (error) {
 			emitErrorToast("双重验证（2FA）", getErrorMessage(error, "2FA 验证失败。"));
+		} finally {
+			settingTotp = false;
+		}
+	}
+
+	async function submitDisableTotp() {
+		if (!user || settingTotp) return;
+		const password = disableTotpPassword;
+		const code = disableTotpCode.trim();
+		if (!password) {
+			emitErrorToast("双重验证（2FA）", "请输入当前密码。");
+			return;
+		}
+		if (!code) {
+			emitErrorToast("双重验证（2FA）", "请输入当前 TOTP 验证码。");
+			return;
+		}
+		settingTotp = true;
+		try {
+			await disableTotp({ password, totpCode: code });
+			disableTotpPassword = "";
+			disableTotpCode = "";
+			totpSecret = "";
+			totpUri = "";
+			totpQrDataUrl = "";
+			totpCode = "";
+			await refreshSession("2FA 已关闭。");
+		} catch (error) {
+			emitErrorToast("双重验证（2FA）", getErrorMessage(error, "关闭 2FA 失败。"));
 		} finally {
 			settingTotp = false;
 		}
@@ -328,12 +394,31 @@
 					<h2 class="text-lg font-bold text-white">双重验证（2FA / TOTP）</h2>
 					{#if user.totpEnabled}
 						<div class="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">当前账号已启用 2FA。</div>
+					<div class="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
+						<p class="text-sm text-white/60">关闭 2FA 需要同时验证当前密码和当前 TOTP 验证码。</p>
+						<div class="space-y-2">
+							<label class="text-sm text-white/65" for="forum-disable-totp-password">当前密码</label>
+							<input id="forum-disable-totp-password" bind:value={disableTotpPassword} type="password" class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-[var(--primary)]" />
+						</div>
+						<div class="space-y-2">
+							<label class="text-sm text-white/65" for="forum-disable-totp-code">当前 TOTP 验证码</label>
+							<input id="forum-disable-totp-code" bind:value={disableTotpCode} inputmode="numeric" maxlength="6" class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-[var(--primary)]" placeholder="输入 6 位验证码" />
+						</div>
+						<button class="rounded-xl border border-red-300/20 bg-red-400/10 px-5 py-3 font-bold text-red-100 disabled:opacity-60" disabled={settingTotp} on:click={submitDisableTotp}>{settingTotp ? "处理中..." : "关闭 2FA"}</button>
+					</div>
 					{:else}
 						<p class="text-sm text-white/45">启用 2FA 后，登录与敏感操作将可使用动态验证码保护。</p>
 						<button class="rounded-xl border border-white/10 px-5 py-3 font-bold text-white/80 disabled:opacity-60" disabled={settingTotp} on:click={startTotpSetup}>{settingTotp ? "准备中..." : "开始启用 2FA"}</button>
 						{#if totpSecret}
 							<div class="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
-								<p class="text-sm text-white/60">请将以下密钥或 otpauth URI 添加到你的验证器应用。</p>
+								<p class="text-sm text-white/60">请使用验证器扫描二维码，或手动录入下方密钥 / otpauth URI。</p>
+								{#if totpQrDataUrl}
+									<div class="flex justify-center">
+										<div class="rounded-2xl bg-white p-3 shadow-sm">
+											<img src={totpQrDataUrl} alt="2FA 二维码" class="h-56 w-56 rounded-xl object-contain" loading="lazy" />
+										</div>
+									</div>
+								{/if}
 								<div>
 									<div class="text-xs uppercase tracking-wide text-white/35">Secret</div>
 									<div class="mt-1 break-all rounded-lg bg-white/5 px-3 py-2 font-mono text-sm text-white/80">{totpSecret}</div>

@@ -95,6 +95,11 @@ interface TotpVerifyPayload {
 	token: string;
 }
 
+interface DisableTotpPayload {
+	password: string;
+	totpCode: string;
+}
+
 interface TotpStatusResult {
 	totp_enabled?: boolean | number;
 }
@@ -354,6 +359,17 @@ export async function verifyTotp(payload: TotpVerifyPayload) {
 		success: result.success,
 		user: normalizeUser(result.user),
 	};
+}
+
+export function disableTotp(payload: DisableTotpPayload) {
+	return forumRequest<{ success?: boolean }>("/api/user/totp/disable", {
+		method: "POST",
+		requiresAuth: true,
+		json: {
+			password: payload.password,
+			totp_code: payload.totpCode,
+		},
+	});
 }
 
 export function deleteAccount(payload: DeleteAccountPayload) {
