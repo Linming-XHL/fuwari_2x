@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import Icon from "@iconify/svelte";
+	import { emitErrorToast, emitSuccessToast } from "@/forum/utils/toast";
 	import {
 		changeEmail,
 		deleteAccount,
@@ -18,7 +19,6 @@
 
 	let user: ForumUser | null = null;
 	let loading = true;
-	let status = "";
 	let savingProfile = false;
 	let changingEmail = false;
 	let settingTotp = false;
@@ -84,6 +84,10 @@
 		return null;
 	}
 
+	function getErrorMessage(error: unknown, fallback: string) {
+		return error instanceof Error ? error.message : fallback;
+	}
+
 	async function refreshSession(statusMessage?: string) {
 		const nextUser = await getCurrentUser();
 		forumAuth.setSession({
@@ -93,7 +97,7 @@
 		});
 		applyUser(nextUser);
 		if (statusMessage) {
-			status = statusMessage;
+			emitSuccessToast("个人设置", statusMessage);
 		}
 		return nextUser;
 	}
@@ -106,9 +110,9 @@
 			if (emailChangeToken) {
 				try {
 					const verifyResult = await verifyEmailChange(emailChangeToken);
-					status = verifyResult.message || "邮箱变更已确认。";
+					emitSuccessToast("邮箱变更", verifyResult.message || "邮箱变更已确认。");
 				} catch (error) {
-					status = error instanceof Error ? error.message : "邮箱确认失败。";
+					emitErrorToast("邮箱变更", getErrorMessage(error, "邮箱确认失败。"));
 				}
 				params.delete("email_change_token");
 				params.delete("token");
@@ -131,11 +135,10 @@
 		const normalizedAvatarUrl = avatarUrl.trim();
 		const usernameError = validateUsername(normalizedUsername);
 		if (usernameError) {
-			status = usernameError;
+			emitErrorToast("个人设置", usernameError);
 			return;
 		}
 		savingProfile = true;
-		status = "正在保存资料...";
 		try {
 			await updateProfile({
 				username: normalizedUsername,
@@ -145,7 +148,7 @@
 			avatarUrl = normalizedAvatarUrl;
 			await refreshSession("资料已更新。");
 		} catch (error) {
-			status = error instanceof Error ? error.message : "资料更新失败。";
+			emitErrorToast("个人设置", getErrorMessage(error, "资料更新失败。"));
 		} finally {
 			savingProfile = false;
 		}
@@ -156,7 +159,6 @@
 		const file = input.files?.[0];
 		input.value = "";
 		if (!file || !user) return;
-		status = "正在压缩头像...";
 		try {
 			let uploadFileTarget = file;
 			try {
@@ -164,25 +166,23 @@
 			} catch {
 				uploadFileTarget = file;
 			}
-			status = uploadFileTarget === file ? "正在上传头像..." : "正在上传压缩后的头像...";
 			const uploadedUrl = await uploadAvatar(uploadFileTarget);
 			avatarUrl = uploadedUrl;
-			status = "头像上传成功，请记得保存资料。";
+			emitSuccessToast("头像设置", "头像上传成功，请记得保存资料。");
 		} catch (error) {
-			status = error instanceof Error ? error.message : "头像上传失败。";
+			emitErrorToast("头像设置", getErrorMessage(error, "头像上传失败。"));
 		}
 	}
 
 	async function requestEmailChange() {
 		if (!user || changingEmail) return;
 		changingEmail = true;
-		status = "正在发送邮箱确认请求...";
 		try {
 			const result = await changeEmail({ newEmail: emailCurrent.trim(), totpCode: emailTotp.trim() || undefined });
 			emailTotp = "";
 			await refreshSession(result.message || "确认邮件已发送至新邮箱，请前往查收。");
 		} catch (error) {
-			status = error instanceof Error ? error.message : "邮箱变更失败。";
+			emitErrorToast("邮箱变更", getErrorMessage(error, "邮箱变更失败。"));
 		} finally {
 			changingEmail = false;
 		}
@@ -191,14 +191,13 @@
 	async function startTotpSetup() {
 		if (!user || settingTotp) return;
 		settingTotp = true;
-		status = "正在准备 2FA...";
 		try {
 			const result = await setupTotp();
 			totpSecret = result.secret;
 			totpUri = result.uri;
-			status = "请使用验证器录入密钥后输入验证码完成启用。";
+			emitSuccessToast("双重验证（2FA）", "请使用验证器录入密钥后输入验证码完成启用。");
 		} catch (error) {
-			status = error instanceof Error ? error.message : "2FA 初始化失败。";
+			emitErrorToast("双重验证（2FA）", getErrorMessage(error, "2FA 初始化失败。"));
 		} finally {
 			settingTotp = false;
 		}
@@ -207,7 +206,6 @@
 	async function confirmTotp() {
 		if (!user || settingTotp) return;
 		settingTotp = true;
-		status = "正在验证 2FA...";
 		try {
 			await verifyTotp({ token: totpCode.trim() });
 			totpSecret = "";
@@ -215,7 +213,7 @@
 			totpCode = "";
 			await refreshSession("2FA 已启用。");
 		} catch (error) {
-			status = error instanceof Error ? error.message : "2FA 验证失败。";
+			emitErrorToast("双重验证（2FA）", getErrorMessage(error, "2FA 验证失败。"));
 		} finally {
 			settingTotp = false;
 		}
@@ -225,13 +223,12 @@
 		if (!user || deletingAccount) return;
 		if (!window.confirm("确定要注销账号吗？此操作无法撤销。")) return;
 		deletingAccount = true;
-		status = "正在注销账号...";
 		try {
 			await deleteAccount({ password: deletePassword, totpCode: deleteTotp.trim() || undefined });
 			forumAuth.clear();
 			window.location.href = "/forum/";
 		} catch (error) {
-			status = error instanceof Error ? error.message : "账号注销失败。";
+			emitErrorToast("账号安全", getErrorMessage(error, "账号注销失败。"));
 		} finally {
 			deletingAccount = false;
 		}
@@ -279,10 +276,6 @@
 				<a href="/forum/auth/login/" class="text-[var(--primary)]">前往登录</a>
 			</div>
 		{:else}
-			{#if status}
-				<div class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/60">{status}</div>
-			{/if}
-
 			<div class="grid gap-6 lg:grid-cols-2">
 				<section class="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4">
 					<h2 class="text-lg font-bold text-white">基础资料</h2>
@@ -321,7 +314,7 @@
 					<h2 class="text-lg font-bold text-white">邮箱变更</h2>
 					<p class="text-sm text-white/45">提交后，确认链接会发送到填写的邮箱地址。</p>
 					<div class="space-y-2">
-						<label class="text-sm text-white/65" for="forum-email-current">当前邮箱地址</label>
+						<label class="text-sm text-white/65" for="forum-email-current">编辑邮箱地址</label>
 						<input id="forum-email-current" bind:value={emailCurrent} type="email" class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-[var(--primary)]" />
 					</div>
 					<div class="space-y-2">

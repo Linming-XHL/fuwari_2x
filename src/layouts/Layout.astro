@@ -14,6 +14,7 @@ import ConfigCarrier from "@components/ConfigCarrier.astro";
 import BodyThirdPartyScripts from "@components/layout/BodyThirdPartyScripts.astro";
 import DashLoaderScript from "@components/layout/DashLoaderScript.astro";
 import LiquidGlassFilter from "@components/layout/LiquidGlassFilter.astro";
+import GlobalToaster from "@components/GlobalToaster.svelte";
 import NewPostNotification from "@components/widget/NewPostNotification.astro";
 import {
 	BANNER_HEIGHT,
@@ -278,6 +279,7 @@ const bannerOffset =
 		</noscript>
 		<div id="bg-box"></div>
 		<ConfigCarrier></ConfigCarrier>
+		<GlobalToaster client:only="svelte" />
         {showNewPostNotification && <NewPostNotification></NewPostNotification>}
 		<slot />
 
