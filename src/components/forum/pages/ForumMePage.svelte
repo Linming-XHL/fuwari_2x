@@ -37,18 +37,10 @@
 
 	let deletePassword = "";
 	let deleteTotp = "";
+	let avatarFileInput: HTMLInputElement | null = null;
 
-	async function copyAvatarUrl() {
-		if (!avatarUrl) {
-			status = "当前没有可复制的头像 URL。";
-			return;
-		}
-		try {
-			await navigator.clipboard.writeText(avatarUrl);
-			status = "头像 URL 已复制。";
-		} catch {
-			status = "复制失败，请手动复制。";
-		}
+	function triggerAvatarUpload() {
+		avatarFileInput?.click();
 	}
 
 	function isAdminUser(nextUser: ForumUser | null) {
@@ -295,36 +287,28 @@
 				<section class="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4">
 					<h2 class="text-lg font-bold text-white">基础资料</h2>
 					<div class="rounded-xl border border-white/10 bg-black/20 p-4">
-						<div class="mb-3 text-sm text-white/50">当前头像</div>
 						<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
-							{#if avatarUrl}
-								<img src={avatarUrl} alt="当前头像" class="h-20 w-20 rounded-full border border-white/10 object-cover" loading="lazy" referrerpolicy="no-referrer" />
-							{:else}
-								<div class="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/35">
-									<Icon icon="material-symbols:person-outline-rounded" class="text-4xl" />
-								</div>
-							{/if}
+							<button type="button" class="group relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5 text-white/35" on:click={triggerAvatarUpload} title="点击上传新头像">
+								{#if avatarUrl}
+									<img src={avatarUrl} alt="当前头像" class="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" referrerpolicy="no-referrer" />
+								{:else}
+									<div class="flex h-full w-full items-center justify-center">
+										<Icon icon="material-symbols:person-outline-rounded" class="text-4xl" />
+									</div>
+								{/if}
+								<div class="absolute inset-0 flex items-center justify-center bg-black/45 text-[11px] font-bold text-white opacity-0 transition group-hover:opacity-100">点击上传</div>
+							</button>
 							<div class="min-w-0 flex-1 space-y-2">
-								<div class="text-sm text-white/50">头像 URL</div>
-								<div class="flex items-center gap-2">
-									<div class="min-w-0 flex-1 truncate rounded-lg bg-white/5 px-3 py-2 text-sm text-white/75" title={avatarUrl || ""}>{avatarUrl || "当前未设置头像 URL"}</div>
-									<button class="shrink-0 rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-white/75 disabled:opacity-50" type="button" disabled={!avatarUrl} on:click={copyAvatarUrl}>复制</button>
-								</div>
+								<input id="forum-profile-avatar-file" bind:this={avatarFileInput} type="file" accept="image/*" class="hidden" on:change={handleAvatarUpload} />
+								<label class="text-sm text-white/65" for="forum-profile-avatar-url">头像 URL</label>
+								<input id="forum-profile-avatar-url" bind:value={avatarUrl} class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-[var(--primary)]" />
+								<p class="text-xs text-white/40">留空表示使用默认头像。</p>
 							</div>
 						</div>
 					</div>
 					<div class="space-y-2">
 						<label class="text-sm text-white/65" for="forum-profile-username">用户名</label>
 						<input id="forum-profile-username" bind:value={username} class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-[var(--primary)]" maxlength="20" />
-					</div>
-					<div class="space-y-2">
-						<label class="text-sm text-white/65" for="forum-profile-avatar-url">头像 URL</label>
-						<input id="forum-profile-avatar-url" bind:value={avatarUrl} class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-[var(--primary)]" />
-						<p class="text-xs text-white/40">留空表示使用默认头像，支持 http(s) 链接或 data:image/svg+xml。</p>
-					</div>
-					<div class="space-y-2">
-						<label class="text-sm text-white/65" for="forum-profile-avatar-file">上传头像</label>
-						<input id="forum-profile-avatar-file" type="file" accept="image/*" class="block w-full text-sm text-white/60 file:mr-4 file:rounded-xl file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-bold file:text-white/80" on:change={handleAvatarUpload} />
 					</div>
 					<label class="flex items-center gap-2 text-sm text-white/65">
 						<input type="checkbox" bind:checked={emailNotifications} />
