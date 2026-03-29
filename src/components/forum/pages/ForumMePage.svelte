@@ -28,7 +28,7 @@
 	let avatarUrl = "";
 	let emailNotifications = true;
 
-	let emailNew = "";
+	let emailCurrent = "";
 	let emailTotp = "";
 
 	let totpSecret = "";
@@ -51,6 +51,7 @@
 		user = nextUser;
 		username = nextUser?.username || "";
 		avatarUrl = nextUser?.avatarUrl || "";
+		emailCurrent = nextUser?.email || "";
 		emailNotifications = nextUser?.emailNotifications ?? true;
 	}
 
@@ -177,8 +178,7 @@
 		changingEmail = true;
 		status = "正在发送邮箱确认请求...";
 		try {
-			const result = await changeEmail({ newEmail: emailNew.trim(), totpCode: emailTotp.trim() || undefined });
-			emailNew = "";
+			const result = await changeEmail({ newEmail: emailCurrent.trim(), totpCode: emailTotp.trim() || undefined });
 			emailTotp = "";
 			await refreshSession(result.message || "确认邮件已发送至新邮箱，请前往查收。");
 		} catch (error) {
@@ -319,14 +319,10 @@
 
 				<section class="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4">
 					<h2 class="text-lg font-bold text-white">邮箱变更</h2>
-					<p class="text-sm text-white/45">提交后，确认链接会发送到新邮箱。</p>
+					<p class="text-sm text-white/45">提交后，确认链接会发送到填写的邮箱地址。</p>
 					<div class="space-y-2">
-						<label class="text-sm text-white/65">当前邮箱地址</label>
-						<div class="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white break-all">{user.email || "未公开"}</div>
-					</div>
-					<div class="space-y-2">
-						<label class="text-sm text-white/65" for="forum-email-new">新邮箱地址</label>
-						<input id="forum-email-new" bind:value={emailNew} type="email" class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-[var(--primary)]" />
+						<label class="text-sm text-white/65" for="forum-email-current">当前邮箱地址</label>
+						<input id="forum-email-current" bind:value={emailCurrent} type="email" class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-[var(--primary)]" />
 					</div>
 					<div class="space-y-2">
 						<label class="text-sm text-white/65" for="forum-email-totp">TOTP 验证码（如已启用）</label>
