@@ -80,6 +80,12 @@ const openPanel = () => {
 	panel?.classList.remove("float-panel-closed");
 };
 
+const reopenPanelIfHasQuery = (): void => {
+	if (keywordDesktop || keywordMobile || result.length > 0) {
+		openPanel();
+	}
+};
+
 const setPanelVisibility = (show: boolean): void => {
 	if (typeof document === "undefined") return;
 	const panel = document.getElementById("search-panel");
@@ -304,7 +310,7 @@ $: {
       bg-white/5 hover:bg-white/10 focus-within:bg-white/10
 ">
     <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-white/30"></Icon>
-    <input placeholder="搜索" bind:value={keywordDesktop} on:focus={() => void ensurePostsLoaded()}
+    <input placeholder="搜索" bind:value={keywordDesktop} on:focus={() => { void ensurePostsLoaded(); reopenPanelIfHasQuery(); }}
            class="transition-all pl-10 text-sm bg-transparent outline-0
          h-full w-40 active:w-60 focus:w-60 text-white/50"
     >
@@ -327,7 +333,7 @@ top-20 left-4 md:left-[unset] right-4 shadow-none rounded-2xl p-2">
       bg-white/5 hover:bg-white/10 focus-within:bg-white/10
   ">
         <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-white/30"></Icon>
-        <input placeholder="搜索" bind:value={keywordMobile} on:focus={() => void ensurePostsLoaded()}
+        <input placeholder="搜索" bind:value={keywordMobile} on:focus={() => { void ensurePostsLoaded(); reopenPanelIfHasQuery(); }}
                class="pl-10 absolute inset-0 text-sm bg-transparent outline-0
                focus:w-60 text-white/50"
         >
