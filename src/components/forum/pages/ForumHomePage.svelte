@@ -132,10 +132,18 @@
 		loadPosts(1);
 	}
 
+	function scrollToPageTop() {
+		if (typeof window === "undefined") {
+			return;
+		}
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	}
+
 	function goToPage(page: number) {
 		if (page < 1 || page > lastPage || page === currentPage || loading) {
 			return;
 		}
+		scrollToPageTop();
 		loadPosts(page);
 	}
 
