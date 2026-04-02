@@ -265,7 +265,11 @@ async function submitComment(parentId?: string) {
 	commentStatus = isReply ? "正在回复..." : "正在发表评论...";
 
 	try {
+		console.log("[submitComment] Submitting comment to post:", postId);
 		await createComment({ postId, content, parentId });
+		console.log(
+			"[submitComment] Comment submitted successfully, waiting for WebSocket broadcast...",
+		);
 		if (isReply) {
 			replyContent = "";
 			activeReplyParentId = null;
