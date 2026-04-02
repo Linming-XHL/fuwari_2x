@@ -11,9 +11,6 @@ const ICE_CONFIG: RTCConfiguration = {
 		{ urls: "stun:stun.l.google.com:19302" },
 		{ urls: "stun:stun1.l.google.com:19302" },
 		{ urls: "stun:stun2.l.google.com:19302" },
-		{ urls: "stun:stun3.l.google.com:19302" },
-		{ urls: "stun:stun4.l.google.com:19302" },
-		{ urls: "stun:stun.cloudflare.com:3478" },
 	],
 };
 
@@ -22,12 +19,6 @@ const SIGNALING_SERVER = "ws://87.83.110.226:8080";
 function isUdpSrflxCandidate(candidate: string): boolean {
 	const c = candidate.toLowerCase();
 	return c.includes(" udp ") && c.includes(" srflx ");
-}
-
-function extractPublicIp(candidate: string): string | null {
-	const parts = candidate.split(" ");
-	const ipIndex = parts.findIndex((p) => p === "srflx") + 1;
-	return parts[ipIndex] || null;
 }
 
 async function startTest() {
@@ -50,25 +41,10 @@ async function startTest() {
 
 				if (isUdpSrflxCandidate(candidateStr)) {
 					iceCandidates = [...iceCandidates, candidateStr];
-				}
-			} else {
-				// ICE收集完成，发送所有候选者给后端
-				console.log(
-					"[NAT] ICE gathering complete, candidates:",
-					iceCandidates.length,
-				);
 
-				if (
-					ws &&
-					ws.readyState === WebSocket.OPEN &&
-					iceCandidates.length > 0
-				) {
-					ws.send(
-						JSON.stringify({
-							type: "candidates",
-							candidates: iceCandidates,
-						}),
-					);
+					if (ws && ws.readyState === WebSocket.OPEN) {
+						ws.send(JSON.stringify({ "ice-candidate": candidateStr }));
+					}
 				}
 			}
 		};
@@ -78,8 +54,15 @@ async function startTest() {
 
 		ws.onopen = () => {
 			console.log("[NAT] Connected to signaling server");
-			// 创建offer以触发ICE收集
+
+			// 创建offer并发送给后端
 			pc?.createOffer().then((offer) => {
+				ws?.send(
+					JSON.stringify({
+						"user-agent": navigator.userAgent,
+						sdp: offer.sdp,
+					}),
+				);
 				pc?.setLocalDescription(offer);
 			});
 		};
@@ -88,7 +71,17 @@ async function startTest() {
 			const data = JSON.parse(event.data);
 			console.log("[NAT] Received:", data);
 
-			if (data.nat_type) {
+			if (data.sdp && pc) {
+				// 收到SDP answer，设置为remote description
+				pc.setRemoteDescription({ type: "answer", sdp: data.sdp });
+			} else if (data["ice-candidate"] && pc) {
+				// 收到服务器的ICE候选者
+				pc.addIceCandidate({
+					candidate: data["ice-candidate"],
+					sdpMLineIndex: 0,
+				});
+			} else if (data.nat_type) {
+				// 收到NAT检测结果
 				result = {
 					natType: data.nat_type,
 					publicIp: data.public_ip || "未知",
@@ -118,7 +111,7 @@ async function startTest() {
 				ws?.close();
 				pc?.close();
 			}
-		}, 20000);
+		}, 15000);
 	} catch (err) {
 		console.error("[NAT] Error:", err);
 		error = err instanceof Error ? err.message : "测试失败";

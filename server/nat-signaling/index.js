@@ -2,6 +2,9 @@ import { WebSocket, WebSocketServer } from "ws";
 
 const PORT = process.env.PORT || 8080;
 
+// STUN服务器
+const STUN_SERVER = "stun:stun.l.google.com:19302";
+
 // 存储连接信息
 const clients = new Map();
 
@@ -21,6 +24,8 @@ wss.on("connection", (ws, req) => {
 		ws: ws,
 		ip: clientIp,
 		iceCandidates: [],
+		sdp: null,
+		userAgent: null,
 	};
 
 	clients.set(clientId, client);
@@ -47,52 +52,52 @@ wss.on("connection", (ws, req) => {
 });
 
 function handleMessage(client, message) {
-	console.log("[NAT] 收到消息类型: " + Object.keys(message).join(", "));
+	const keys = Object.keys(message);
+	console.log("[NAT] 收到消息类型: " + keys.join(", "));
 
-	// 处理批量候选者
-	if (message.type === "candidates" && Array.isArray(message.candidates)) {
-		console.log("[NAT] 收到 " + message.candidates.length + " 个ICE候选者");
+	// 处理SDP offer
+	if (message.sdp) {
+		client.sdp = message.sdp;
+		client.userAgent = message["user-agent"];
 
-		for (const candidate of message.candidates) {
-			const candidateInfo = parseIceCandidate(candidate);
-			console.log(
-				"[NAT] 候选者类型: " +
-					candidateInfo.type +
-					", IP: " +
-					candidateInfo.ip +
-					":" +
-					candidateInfo.port,
-			);
-			client.iceCandidates.push(candidateInfo);
-		}
+		console.log("[NAT] 收到SDP Offer");
 
-		// 分析NAT类型
-		const natResult = analyzeNatType(client);
-		client.ws.send(JSON.stringify(natResult));
-		console.log("[NAT] 发送结果: " + JSON.stringify(natResult));
-		return;
+		// 生成SDP Answer
+		const answer = generateSdpAnswer(message.sdp);
+		client.ws.send(JSON.stringify({ sdp: answer }));
+		console.log("[NAT] 已发送SDP Answer");
+
+		// 等待一段时间后分析结果
+		setTimeout(() => {
+			analyzeAndSendResult(client);
+		}, 3000);
 	}
 
-	// 兼容旧的单个候选者格式
+	// 处理ICE候选者
 	if (message["ice-candidate"]) {
 		const candidate = message["ice-candidate"];
 		const candidateInfo = parseIceCandidate(candidate);
-		client.iceCandidates.push(candidateInfo);
 
-		console.log("[NAT] 收到ICE候选者: " + candidate.substring(0, 80) + "...");
+		client.iceCandidates.push(candidateInfo);
 		console.log(
-			"[NAT] 候选者类型: " +
+			"[NAT] 收到ICE候选者: " +
 				candidateInfo.type +
-				", IP: " +
+				" " +
 				candidateInfo.ip +
 				":" +
 				candidateInfo.port,
 		);
+
+		// 发送一个服务器端的候选者回去（模拟）
+		const serverCandidate = generateServerCandidate(candidateInfo);
+		client.ws.send(JSON.stringify({ "ice-candidate": serverCandidate }));
 	}
 }
 
 function parseIceCandidate(candidate) {
 	const parts = candidate.split(" ");
+	// 格式: candidate:foundation component protocol priority ip port typ type ...
+	const typeIndex = parts.indexOf("typ");
 	return {
 		foundation: parts[0]?.split(":")[1],
 		component: parts[1],
@@ -100,57 +105,96 @@ function parseIceCandidate(candidate) {
 		priority: parts[3],
 		ip: parts[4],
 		port: Number.parseInt(parts[5]),
-		type: parts[7],
+		type: typeIndex >= 0 ? parts[typeIndex + 1] : "unknown",
+		raddr: parts[parts.indexOf("raddr") + 1],
+		rport: parts[parts.indexOf("rport") + 1],
 	};
 }
 
-function analyzeNatType(client) {
+function generateSdpAnswer(offerSdp) {
+	// 修改offer生成answer
+	// 关键修改: setup属性必须是active或passive
+	let answer = offerSdp;
+
+	// 修改setup属性
+	answer = answer.replace(/a=setup:actpass/g, "a=setup:active");
+	answer = answer.replace(/a=setup:passive/g, "a=setup:active");
+
+	// 修改o=行（session origin）
+	answer = answer.replace(
+		/o=- \d+ \d+ IN IP4/,
+		"o=- " + Date.now() + " " + Date.now() + " IN IP4",
+	);
+
+	// 修改role
+	answer = answer.replace(/a=ice-lite/g, "");
+
+	return answer;
+}
+
+function generateServerCandidate(clientInfo) {
+	// 生成一个模拟的服务器端候选者
+	// 这会触发客户端建立连接
+	return (
+		"candidate:1 1 udp 2130706431 0.0.0.0 12345 typ srflx raddr " +
+		clientInfo.ip +
+		" rport " +
+		clientInfo.port
+	);
+}
+
+function analyzeAndSendResult(client) {
 	const candidates = client.iceCandidates;
 
 	console.log("[NAT] 分析 " + candidates.length + " 个候选者...");
 
-	// 提取所有srflx候选者
+	// 提取srflx候选者
 	const srflxCandidates = candidates.filter((c) => c.type === "srflx");
 
 	if (srflxCandidates.length === 0) {
-		return {
-			nat_type: "Blocked",
-			public_ip: "未知",
-		};
+		client.ws.send(
+			JSON.stringify({
+				nat_type: "Blocked",
+				public_ip: "未知",
+			}),
+		);
+		return;
 	}
 
 	// 获取公网IP
 	const publicIp = srflxCandidates[0].ip;
+	const publicPort = srflxCandidates[0].port;
 
-	// 检查端口是否变化（对称NAT特征）
+	// 检查端口集合
 	const uniquePorts = new Set(srflxCandidates.map((c) => c.port));
+	const uniqueIps = new Set(srflxCandidates.map((c) => c.ip));
 
-	console.log("[NAT] srflx候选者数量: " + srflxCandidates.length);
-	console.log("[NAT] 不同端口数量: " + uniquePorts.size);
-	console.log("[NAT] 端口列表: " + Array.from(uniquePorts).join(", "));
+	console.log("[NAT] 公网IP: " + publicIp);
+	console.log("[NAT] 公网端口: " + publicPort);
+	console.log("[NAT] 不同端口数: " + uniquePorts.size);
+	console.log("[NAT] 不同IP数: " + uniqueIps.size);
 
 	let natType;
 
 	if (srflxCandidates.length === 1) {
-		// 只有一个srflx候选者，无法准确判断
-		// 默认返回Restricted Cone（较常见且兼容性较好）
+		// 只有一个srflx候选者
+		// 无法完全确定，返回Restricted Cone（最常见）
 		natType = "Restricted Cone";
 	} else if (uniquePorts.size > 1) {
 		// 多个不同端口 = 对称NAT
 		natType = "Symmetric";
-	} else if (uniquePorts.size === 1 && srflxCandidates.length >= 3) {
-		// 多个相同端口 = 端口受限锥形或受限锥形
-		// 如果来自不同STUN服务器但端口相同，更可能是Port Restricted Cone
-		natType = "Port Restricted Cone";
 	} else {
-		// 默认
-		natType = "Restricted Cone";
+		// 端口相同
+		natType = "Port Restricted Cone";
 	}
 
-	return {
+	const result = {
 		nat_type: natType,
 		public_ip: publicIp,
 	};
+
+	console.log("[NAT] 发送结果: " + JSON.stringify(result));
+	client.ws.send(JSON.stringify(result));
 }
 
 function generateId() {
