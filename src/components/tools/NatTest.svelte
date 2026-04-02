@@ -17,41 +17,6 @@ function isUdpSrflxCandidate(candidate: string): boolean {
 	return c.includes(" udp ") && c.includes(" srflx ");
 }
 
-// 处理探测请求（用于Full Cone检测）
-async function handleProbeOffer(offerSdp: string, ws: WebSocket) {
-	try {
-		const probePc = new RTCPeerConnection({ iceServers: [] });
-
-		// 收到服务器的探测offer后，创建answer返回
-		await probePc.setRemoteDescription({ type: "offer", sdp: offerSdp });
-		const answer = await probePc.createAnswer();
-		await probePc.setLocalDescription(answer);
-
-		// 发送answer给服务器
-		ws.send(JSON.stringify({ "probe-answer": answer.sdp }));
-
-		// 监听DataChannel
-		probePc.ondatachannel = (event) => {
-			const dc = event.channel;
-			dc.onopen = () => {
-				console.log("[NAT] 探测DataChannel已打开");
-				dc.send("probe-ack");
-			};
-			dc.onmessage = (msg) => {
-				console.log("[NAT] 探测收到消息:", msg.data);
-				dc.send("probe-ack");
-			};
-		};
-
-		// 超时关闭
-		setTimeout(() => {
-			probePc.close();
-		}, 5000);
-	} catch (err) {
-		console.error("[NAT] 处理探测offer失败:", err);
-	}
-}
-
 async function startTest() {
 	testing = true;
 	result = null;
@@ -102,10 +67,6 @@ async function startTest() {
 					candidate: data["ice-candidate"],
 					sdpMLineIndex: 0,
 				});
-			} else if (data["probe-offer"] && ws) {
-				// 收到探测请求，用于Full Cone检测
-				console.log("[NAT] 收到探测offer，返回answer");
-				handleProbeOffer(data["probe-offer"], ws);
 			} else if (data.nat_type) {
 				result = {
 					natType: normalizeNatType(data.nat_type),
@@ -124,7 +85,6 @@ async function startTest() {
 			pc?.close();
 		};
 
-		// 超时处理
 		setTimeout(() => {
 			if (testing && !result && !error) {
 				error = "测试超时";
@@ -152,9 +112,6 @@ function normalizeNatType(natType: string): string {
 	if (natType.includes("Port Restricted")) {
 		return "Port Restricted Cone";
 	}
-	if (natType.includes("Cone")) {
-		return "Full Cone";
-	}
 	return natType;
 }
 
@@ -178,7 +135,7 @@ function getNatDescription(natType: string): string {
 	</div>
 
 	<p class="text-sm text-50 leading-relaxed">
-		检测您的网络NAT类型和公网IP地址，帮助判断P2P连接兼容性。测试需要约10-15秒。
+		检测您的网络NAT类型和公网IP地址，帮助判断P2P连接兼容性。
 	</p>
 
 	<div class="flex justify-center">
