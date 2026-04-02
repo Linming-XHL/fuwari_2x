@@ -1,28 +1,47 @@
 import { WebSocket, WebSocketServer } from "ws";
 
 const PORT = process.env.PORT || 8080;
+const SECOND_PORT = Number.parseInt(process.env.SECOND_PORT || "8081");
 
 // 存储连接信息
 const clients = new Map();
 
-// 创建WebSocket服务器
+// 主WebSocket服务器
 const wss = new WebSocketServer({ port: PORT });
 
-console.log("[NAT] 信令服务器启动在端口 " + PORT);
+// 第二个WebSocket服务器（不同端口，用于测试Full Cone）
+const wss2 = new WebSocketServer({ port: SECOND_PORT });
 
+console.log("[NAT] 主信令服务器启动在端口 " + PORT);
+console.log("[NAT] 辅助测试服务器启动在端口 " + SECOND_PORT);
+
+// 处理主连接
 wss.on("connection", (ws, req) => {
+	handleConnection(ws, req, "primary");
+});
+
+// 处理辅助连接（用于第二次测试）
+wss2.on("connection", (ws, req) => {
+	handleConnection(ws, req, "secondary");
+});
+
+function handleConnection(ws, req, serverType) {
 	const clientId = generateId();
 	const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
-	console.log("[NAT] 新连接: " + clientId + " 来自 " + clientIp);
+	console.log(
+		"[NAT] 新" + serverType + "连接: " + clientId + " 来自 " + clientIp,
+	);
 
 	const client = {
 		id: clientId,
 		ws: ws,
 		ip: clientIp,
-		ipv4Candidates: [],
-		ipv6Candidates: [],
+		iceCandidates: [],
 		sdp: null,
+		userAgent: null,
+		serverType: serverType,
+		testPhase: 1,
 	};
 
 	clients.set(clientId, client);
@@ -46,27 +65,38 @@ wss.on("connection", (ws, req) => {
 		console.error("[NAT] 连接错误: " + clientId, error);
 		clients.delete(clientId);
 	});
-});
+}
+
+// 存储客户端的两次测试结果
+const clientTestResults = new Map();
 
 function handleMessage(client, message) {
 	const keys = Object.keys(message);
 	console.log("[NAT] 收到消息类型: " + keys.join(", "));
 
+	// 处理测试阶段标记
+	if (message.type === "test-phase") {
+		client.testPhase = message.phase;
+		console.log("[NAT] 测试阶段: " + message.phase);
+		return;
+	}
+
 	// 处理SDP offer
 	if (message.sdp) {
 		client.sdp = message.sdp;
+		client.userAgent = message["user-agent"];
 
-		console.log("[NAT] 收到SDP Offer");
+		console.log("[NAT] 收到SDP Offer，阶段 " + client.testPhase);
 
 		// 生成SDP Answer
 		const answer = generateSdpAnswer(message.sdp);
 		client.ws.send(JSON.stringify({ sdp: answer }));
 		console.log("[NAT] 已发送SDP Answer");
 
-		// 等待更长时间让ICE候选者收集完成
+		// 等待一段时间后分析结果
 		setTimeout(() => {
 			analyzeAndSendResult(client);
-		}, 8000);
+		}, 3000);
 	}
 
 	// 处理ICE候选者
@@ -74,21 +104,17 @@ function handleMessage(client, message) {
 		const candidate = message["ice-candidate"];
 		const candidateInfo = parseIceCandidate(candidate);
 
-		// 分类存储IPv4和IPv6候选者
-		if (candidateInfo.isIpv6) {
-			client.ipv6Candidates.push(candidateInfo);
-			console.log("[NAT] 收到IPv6 ICE候选者: " + candidateInfo.ip);
-		} else {
-			client.ipv4Candidates.push(candidateInfo);
-			console.log(
-				"[NAT] 收到IPv4 ICE候选者: " +
-					candidateInfo.ip +
-					":" +
-					candidateInfo.port,
-			);
-		}
+		client.iceCandidates.push(candidateInfo);
+		console.log(
+			"[NAT] 收到ICE候选者: " +
+				candidateInfo.type +
+				" " +
+				candidateInfo.ip +
+				":" +
+				candidateInfo.port,
+		);
 
-		// 发送一个服务器端的候选者回去
+		// 发送一个服务器端的候选者回去（模拟）
 		const serverCandidate = generateServerCandidate(candidateInfo);
 		client.ws.send(JSON.stringify({ "ice-candidate": serverCandidate }));
 	}
@@ -97,33 +123,28 @@ function handleMessage(client, message) {
 function parseIceCandidate(candidate) {
 	const parts = candidate.split(" ");
 	const typeIndex = parts.indexOf("typ");
-	const ip = parts[4];
-
 	return {
 		foundation: parts[0]?.split(":")[1],
 		component: parts[1],
 		protocol: parts[2],
 		priority: parts[3],
-		ip: ip,
+		ip: parts[4],
 		port: Number.parseInt(parts[5]),
 		type: typeIndex >= 0 ? parts[typeIndex + 1] : "unknown",
-		isIpv6: ip?.includes(":"),
+		raddr: parts[parts.indexOf("raddr") + 1],
+		rport: parts[parts.indexOf("rport") + 1],
 	};
 }
 
 function generateSdpAnswer(offerSdp) {
 	let answer = offerSdp;
-
-	// 修改setup属性为active
 	answer = answer.replace(/a=setup:actpass/g, "a=setup:active");
 	answer = answer.replace(/a=setup:passive/g, "a=setup:active");
-
-	// 修改o=行
 	answer = answer.replace(
 		/o=- \d+ \d+ IN IP4/,
 		"o=- " + Date.now() + " " + Date.now() + " IN IP4",
 	);
-
+	answer = answer.replace(/a=ice-lite/g, "");
 	return answer;
 }
 
@@ -137,78 +158,83 @@ function generateServerCandidate(clientInfo) {
 }
 
 function analyzeAndSendResult(client) {
-	console.log("[NAT] 分析候选者...");
-	console.log("[NAT] IPv4候选者: " + client.ipv4Candidates.length + " 个");
-	console.log("[NAT] IPv6候选者: " + client.ipv6Candidates.length + " 个");
+	const candidates = client.iceCandidates;
+	const phase = client.testPhase;
+	const clientId = client.id.replace(/[^a-zA-Z0-9]/g, "");
 
-	const result = {};
+	console.log(
+		"[NAT] 分析阶段 " + phase + " 的 " + candidates.length + " 个候选者...",
+	);
 
-	// 分析IPv4 NAT类型
-	if (client.ipv4Candidates.length > 0) {
-		const srflx4 = client.ipv4Candidates.filter((c) => c.type === "srflx");
-		const host4 = client.ipv4Candidates.filter((c) => c.type === "host");
+	// 提取srflx候选者
+	const srflxCandidates = candidates.filter((c) => c.type === "srflx");
 
-		let publicIp;
+	if (srflxCandidates.length === 0) {
+		client.ws.send(
+			JSON.stringify({
+				nat_type: "Blocked",
+				public_ip: "未知",
+			}),
+		);
+		return;
+	}
+
+	const publicIp = srflxCandidates[0].ip;
+	const publicPort = srflxCandidates[0].port;
+
+	// 存储测试结果
+	if (!clientTestResults.has(clientIp)) {
+		clientTestResults.set(clientIp, []);
+	}
+	const results = clientTestResults.get(clientIp);
+	results.push({ phase, ip: publicIp, port: publicPort });
+
+	console.log("[NAT] 阶段 " + phase + " 公网: " + publicIp + ":" + publicPort);
+
+	if (phase === 1) {
+		// 第一次测试，返回结果并提示进行第二次测试
+		client.ws.send(
+			JSON.stringify({
+				nat_type: "Testing",
+				public_ip: publicIp,
+				message: "第一次测试完成，正在进行第二次测试...",
+				phase: 1,
+				next_test_port: SECOND_PORT,
+			}),
+		);
+	} else {
+		// 第二次测试，对比结果
+		const phase1Result = results.find((r) => r.phase === 1);
+		const phase2Result = results.find((r) => r.phase === 2);
+
 		let natType;
 
-		if (srflx4.length > 0) {
-			publicIp = srflx4[0].ip;
-			const uniquePorts = new Set(srflx4.map((c) => c.port));
-
-			if (srflx4.length === 1) {
-				natType = "Restricted Cone";
-			} else if (uniquePorts.size > 1) {
-				natType = "Symmetric";
-			} else {
-				natType = "Port Restricted Cone";
-			}
-		} else if (host4.length > 0) {
-			// 只有host候选者，可能是公网IP直接连接
-			publicIp = host4[0].ip;
-			natType = host4[0].ip.includes(":") ? "可直连" : "公网IP";
+		if (!phase1Result || !phase2Result) {
+			natType = "Unknown";
+		} else if (phase1Result.port !== phase2Result.port) {
+			// 两次测试端口不同 = 对称NAT
+			natType = "Symmetric";
+		} else if (phase1Result.port === phase2Result.port) {
+			// 端口相同，检查是否能从不同端口连接
+			// 如果能从辅助服务器（不同端口）连接成功，说明是Full Cone
+			natType = "Full Cone";
+		} else {
+			natType = "Restricted Cone";
 		}
 
-		if (publicIp) {
-			result.ipv4 = {
-				nat_type: natType || "未知",
-				public_ip: publicIp,
-			};
-			console.log("[NAT] IPv4 NAT类型: " + natType + ", 公网IP: " + publicIp);
-		}
-	} else {
-		// 没有IPv4候选者
-		result.ipv4 = {
-			nat_type: "不可用",
-			public_ip: "未检测到",
+		const result = {
+			nat_type: natType,
+			public_ip: publicIp,
+			phase1_port: phase1Result?.port,
+			phase2_port: phase2Result?.port,
 		};
-		console.log("[NAT] 未检测到IPv4候选者，可能STUN被阻止");
+
+		console.log("[NAT] 最终结果: " + JSON.stringify(result));
+		client.ws.send(JSON.stringify(result));
+
+		// 清理测试结果
+		clientTestResults.delete(clientIp);
 	}
-
-	// 分析IPv6状态
-	if (client.ipv6Candidates.length > 0) {
-		const srflx6 = client.ipv6Candidates.filter((c) => c.type === "srflx");
-		const host6 = client.ipv6Candidates.filter((c) => c.type === "host");
-
-		if (srflx6.length > 0 || host6.length > 0) {
-			const publicIp = srflx6[0]?.ip || host6[0]?.ip;
-			result.ipv6 = {
-				status: "可直连",
-				public_ip: publicIp,
-			};
-			console.log("[NAT] IPv6 公网IP: " + publicIp);
-		}
-	}
-
-	// 如果没有IPv6候选者
-	if (!result.ipv6) {
-		result.ipv6 = {
-			status: "不可用",
-			public_ip: "未检测到",
-		};
-	}
-
-	console.log("[NAT] 发送结果: " + JSON.stringify(result));
-	client.ws.send(JSON.stringify(result));
 }
 
 function generateId() {
@@ -219,7 +245,9 @@ function generateId() {
 process.on("SIGINT", () => {
 	console.log("\n[NAT] 正在关闭服务器...");
 	wss.close(() => {
-		console.log("[NAT] 服务器已关闭");
-		process.exit(0);
+		wss2.close(() => {
+			console.log("[NAT] 服务器已关闭");
+			process.exit(0);
+		});
 	});
 });

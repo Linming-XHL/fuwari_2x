@@ -2,196 +2,184 @@
 import Icon from "@iconify/svelte";
 
 let testing = false;
-let ipv4Result: { natType: string; publicIp: string } | null = null;
-let ipv6Result: { status: string; publicIp: string } | null = null;
+let result: { natType: string; publicIp: string; phase?: number } | null = null;
 let error = "";
 let iceCandidates: string[] = [];
+let testPhase = 0;
 
-// 同时支持IPv4和IPv6的STUN服务器
 const ICE_CONFIG: RTCConfiguration = {
 	iceServers: [
 		{ urls: "stun:stun.l.google.com:19302" },
 		{ urls: "stun:stun1.l.google.com:19302" },
-		{ urls: "stun:stun2.l.google.com:19302" },
-		{ urls: "stun:stun3.l.google.com:19302" },
-		{ urls: "stun:stun4.l.google.com:19302" },
 	],
 };
 
-const SIGNALING_SERVER = "ws://87.83.110.226:8080";
+const PRIMARY_SERVER = "ws://87.83.110.226:8080";
+const SECONDARY_SERVER = "ws://87.83.110.226:8081";
 
-function isSrflxCandidate(candidate: string): boolean {
+function isUdpSrflxCandidate(candidate: string): boolean {
 	const c = candidate.toLowerCase();
-	return c.includes(" srflx ");
+	return c.includes(" udp ") && c.includes(" srflx ");
 }
 
-function isIpv6Candidate(candidate: string): boolean {
-	// IPv6地址包含冒号
-	const parts = candidate.split(" ");
-	const ip = parts[4];
-	return ip?.includes(":");
-}
+function runSingleTest(
+	serverUrl: string,
+	phase: number,
+): Promise<{ ip: string; port: number; candidates: string[] }> {
+	return new Promise((resolve, reject) => {
+		let pc: RTCPeerConnection | null = null;
+		let ws: WebSocket | null = null;
+		const candidates: string[] = [];
+		let resolved = false;
 
-function extractCandidateInfo(candidate: string) {
-	const parts = candidate.split(" ");
-	const typeIndex = parts.indexOf("typ");
-	return {
-		ip: parts[4],
-		port: Number.parseInt(parts[5]),
-		type: typeIndex >= 0 ? parts[typeIndex + 1] : "unknown",
-		isIpv6: parts[4]?.includes(":"),
-	};
-}
+		const timeout = setTimeout(() => {
+			if (!resolved) {
+				resolved = true;
+				pc?.close();
+				ws?.close();
+				reject(new Error("测试超时"));
+			}
+		}, 10000);
 
-async function startTest() {
-	testing = true;
-	ipv4Result = null;
-	ipv6Result = null;
-	error = "";
-	iceCandidates = [];
-
-	let pc: RTCPeerConnection | null = null;
-	let ws: WebSocket | null = null;
-
-	const ipv4Candidates: string[] = [];
-	const ipv6Candidates: string[] = [];
-	const pendingCandidates: string[] = [];
-
-	try {
-		// 先连接信令服务器
-		ws = new WebSocket(SIGNALING_SERVER);
-
-		ws.onopen = () => {
-			console.log("[NAT] Connected to signaling server");
-
-			// WebSocket连接后再创建RTCPeerConnection
+		try {
 			pc = new RTCPeerConnection(ICE_CONFIG);
 			pc.createDataChannel("nat-test");
 
 			pc.onicecandidate = (event) => {
 				if (event.candidate) {
 					const candidateStr = event.candidate.candidate;
-					console.log("[NAT] ICE candidate:", candidateStr);
+					console.log("[NAT] Phase " + phase + " ICE candidate:", candidateStr);
 
-					if (isSrflxCandidate(candidateStr)) {
-						iceCandidates = [...iceCandidates, candidateStr];
+					if (isUdpSrflxCandidate(candidateStr)) {
+						candidates.push(candidateStr);
 
-						const info = extractCandidateInfo(candidateStr);
-						if (info.isIpv6) {
-							ipv6Candidates.push(candidateStr);
-						} else {
-							ipv4Candidates.push(candidateStr);
-						}
-
-						// 立即发送给后端
 						if (ws && ws.readyState === WebSocket.OPEN) {
 							ws.send(JSON.stringify({ "ice-candidate": candidateStr }));
 						}
 					}
-				} else {
-					console.log("[NAT] ICE gathering complete");
-					console.log("[NAT] IPv4 candidates:", ipv4Candidates.length);
-					console.log("[NAT] IPv6 candidates:", ipv6Candidates.length);
 				}
 			};
 
-			// 创建offer并发送给后端
-			pc.createOffer().then((offer) => {
-				ws?.send(
-					JSON.stringify({
-						"user-agent": navigator.userAgent,
-						sdp: offer.sdp,
-					}),
-				);
-				pc?.setLocalDescription(offer);
-			});
-		};
+			ws = new WebSocket(serverUrl);
 
-		ws.onmessage = (event) => {
-			const data = JSON.parse(event.data);
-			console.log("[NAT] Received:", data);
+			ws.onopen = () => {
+				console.log("[NAT] Phase " + phase + " connected to " + serverUrl);
 
-			if (data.sdp && pc) {
-				pc.setRemoteDescription({ type: "answer", sdp: data.sdp });
-			} else if (data["ice-candidate"] && pc) {
-				pc.addIceCandidate({
-					candidate: data["ice-candidate"],
-					sdpMLineIndex: 0,
+				// 发送测试阶段
+				ws?.send(JSON.stringify({ type: "test-phase", phase }));
+
+				pc?.createOffer().then((offer) => {
+					ws?.send(
+						JSON.stringify({
+							"user-agent": navigator.userAgent,
+							sdp: offer.sdp,
+						}),
+					);
+					pc?.setLocalDescription(offer);
 				});
-			} else if (data.error) {
-				error = data.error;
-				ws?.close();
-			} else {
-				// 同时处理ipv4和ipv6
-				if (data.ipv4) {
-					ipv4Result = {
-						natType: data.ipv4.nat_type,
-						publicIp: data.ipv4.public_ip || "未知",
-					};
+			};
+
+			ws.onmessage = (event) => {
+				const data = JSON.parse(event.data);
+				console.log("[NAT] Phase " + phase + " received:", data);
+
+				if (data.sdp && pc) {
+					pc.setRemoteDescription({ type: "answer", sdp: data.sdp });
+				} else if (data["ice-candidate"] && pc) {
+					pc.addIceCandidate({
+						candidate: data["ice-candidate"],
+						sdpMLineIndex: 0,
+					});
+				} else if (data.nat_type && !resolved) {
+					resolved = true;
+					clearTimeout(timeout);
+
+					const firstCandidate = candidates[0];
+					const ip = data.public_ip || "未知";
+					const port = firstCandidate
+						? Number.parseInt(firstCandidate.split(" ")[5])
+						: 0;
+
+					pc.close();
+					ws.close();
+
+					resolve({ ip, port, candidates });
+				} else if (data.error && !resolved) {
+					resolved = true;
+					clearTimeout(timeout);
+					pc?.close();
+					ws?.close();
+					reject(new Error(data.error));
 				}
-				if (data.ipv6) {
-					ipv6Result = {
-						status: data.ipv6.status,
-						publicIp: data.ipv6.public_ip || "未知",
-					};
+			};
+
+			ws.onerror = () => {
+				if (!resolved) {
+					resolved = true;
+					clearTimeout(timeout);
+					pc?.close();
+					reject(new Error("连接失败"));
 				}
-				if (data.nat_type) {
-					// 兼容旧格式
-					ipv4Result = {
-						natType: data.nat_type,
-						publicIp: data.public_ip || "未知",
-					};
-				}
-			}
-
-			// 检查是否完成
-			if (ipv4Result && ipv6Result) {
-				testing = false;
-				ws?.close();
-			}
-		};
-
-		ws.onerror = (event) => {
-			console.error("[NAT] WebSocket error:", event);
-			error = "信令服务器连接失败";
-		};
-
-		ws.onclose = () => {
-			console.log("[NAT] WebSocket closed");
-			testing = false;
-			pc?.close();
-
-			// 如果只有IPv4结果，设置IPv6为不可用
-			if (ipv4Result && !ipv6Result) {
-				ipv6Result = {
-					status: "不可用",
-					publicIp: "未检测到",
-				};
-			}
-		};
-
-		// 超时处理
-		setTimeout(() => {
-			if (testing) {
-				testing = false;
-				if (!ipv4Result && !ipv6Result) {
-					error = "测试超时，请检查网络连接";
-				} else if (!ipv6Result) {
-					ipv6Result = {
-						status: "不可用",
-						publicIp: "未检测到",
-					};
-				}
-				ws?.close();
+			};
+		} catch (err) {
+			if (!resolved) {
+				resolved = true;
+				clearTimeout(timeout);
 				pc?.close();
+				reject(err);
 			}
-		}, 15000);
+		}
+	});
+}
+
+async function startTest() {
+	testing = true;
+	result = null;
+	error = "";
+	iceCandidates = [];
+	testPhase = 1;
+
+	try {
+		// 第一次测试
+		console.log("[NAT] 开始第一次测试...");
+		const test1 = await runSingleTest(PRIMARY_SERVER, 1);
+		iceCandidates = test1.candidates;
+
+		console.log("[NAT] 第一次测试结果:", test1);
+
+		// 第二次测试（从不同端口）
+		testPhase = 2;
+		console.log("[NAT] 开始第二次测试...");
+		const test2 = await runSingleTest(SECONDARY_SERVER, 2);
+
+		console.log("[NAT] 第二次测试结果:", test2);
+
+		// 对比结果判断NAT类型
+		let natType: string;
+
+		if (test1.port === 0 || test2.port === 0) {
+			natType = "Blocked";
+		} else if (test1.port !== test2.port) {
+			// 两次测试端口不同 = 对称NAT
+			natType = "Symmetric";
+		} else {
+			// 端口相同，能从不同端口的服务器连接成功 = Full Cone
+			natType = "Full Cone";
+		}
+
+		result = {
+			natType,
+			publicIp: test1.ip,
+			phase: 2,
+		};
+
+		console.log("[NAT] 最终结果:", result);
 	} catch (err) {
 		console.error("[NAT] Error:", err);
 		error = err instanceof Error ? err.message : "测试失败";
+	} finally {
 		testing = false;
-		if (pc) pc.close();
-		if (ws) ws.close();
+		testPhase = 0;
 	}
 }
 
@@ -201,13 +189,10 @@ const natTypeDescriptions: Record<string, string> = {
 	"Port Restricted Cone": "端口受限锥形NAT - 中等P2P兼容性",
 	Symmetric: "对称型NAT - P2P连接困难",
 	Blocked: "网络被阻止",
-	可直连: "IPv6公网可达，无需NAT",
-	受限: "IPv6存在防火墙限制",
-	不可用: "未检测到IPv6地址",
 };
 
-function getNatDescription(type: string): string {
-	return natTypeDescriptions[type] || "未知类型";
+function getNatDescription(natType: string): string {
+	return natTypeDescriptions[natType] || "未知类型";
 }
 </script>
 
@@ -218,7 +203,7 @@ function getNatDescription(type: string): string {
 	</div>
 
 	<p class="text-sm text-50 leading-relaxed">
-		检测您的网络NAT类型和公网IP地址，支持IPv4/IPv6双栈检测。测试需要约10-20秒。
+		检测您的网络NAT类型和公网IP地址，帮助判断P2P连接兼容性。测试需要约15-20秒。
 	</p>
 
 	<div class="flex justify-center">
@@ -230,7 +215,7 @@ function getNatDescription(type: string): string {
 			{#if testing}
 				<span class="flex items-center gap-2">
 					<Icon icon="svg-spinners:ring-resize" class="text-lg" />
-					正在测试...
+					正在测试... (阶段 {testPhase}/2)
 				</span>
 			{:else}
 				开始检测
@@ -247,49 +232,21 @@ function getNatDescription(type: string): string {
 		</div>
 	{/if}
 
-	{#if ipv4Result || ipv6Result}
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-			<!-- IPv4 结果 -->
-			{#if ipv4Result}
-				<div class="rounded-xl border border-[var(--primary)]/25 bg-[var(--primary)]/10 p-5 space-y-3">
-					<div class="flex items-center gap-2 mb-3">
-						<Icon icon="material-symbols:language" class="text-[var(--primary)] w-5 h-5" />
-						<span class="font-bold text-75">IPv4</span>
-					</div>
-					<div>
-						<p class="text-xs text-50 mb-1">NAT类型</p>
-						<p class="text-xl font-bold text-[var(--primary)]">{ipv4Result.natType}</p>
-						<p class="text-xs text-40 mt-1">{getNatDescription(ipv4Result.natType)}</p>
-					</div>
-					<div class="border-t border-white/10 pt-3">
-						<p class="text-xs text-50 mb-1">公网IP</p>
-						<p class="text-sm font-mono text-75">{ipv4Result.publicIp}</p>
-					</div>
-				</div>
-			{/if}
-
-			<!-- IPv6 结果 -->
-			{#if ipv6Result}
-				<div class="rounded-xl border border-blue-400/25 bg-blue-400/10 p-5 space-y-3">
-					<div class="flex items-center gap-2 mb-3">
-						<Icon icon="material-symbols:language" class="text-blue-400 w-5 h-5" />
-						<span class="font-bold text-75">IPv6</span>
-					</div>
-					<div>
-						<p class="text-xs text-50 mb-1">状态</p>
-						<p class="text-xl font-bold text-blue-400">{ipv6Result.status}</p>
-						<p class="text-xs text-40 mt-1">{getNatDescription(ipv6Result.status)}</p>
-					</div>
-					<div class="border-t border-white/10 pt-3">
-						<p class="text-xs text-50 mb-1">公网IP</p>
-						<p class="text-sm font-mono text-75 break-all">{ipv6Result.publicIp}</p>
-					</div>
-				</div>
-			{/if}
+	{#if result}
+		<div class="rounded-xl border border-[var(--primary)]/25 bg-[var(--primary)]/10 p-6 space-y-4">
+			<div class="text-center">
+				<p class="text-sm text-50 mb-1">NAT类型</p>
+				<p class="text-3xl font-bold text-[var(--primary)]">{result.natType}</p>
+				<p class="text-sm text-50 mt-2">{getNatDescription(result.natType)}</p>
+			</div>
+			<div class="border-t border-white/10 pt-4 text-center">
+				<p class="text-sm text-50 mb-1">公网IP</p>
+				<p class="text-xl font-mono text-75">{result.publicIp}</p>
+			</div>
 		</div>
 	{/if}
 
-	{#if iceCandidates.length > 0 && !ipv4Result}
+	{#if iceCandidates.length > 0 && !result}
 		<div class="rounded-xl border border-white/10 p-4">
 			<p class="text-sm text-50 mb-2">已收集到 {iceCandidates.length} 个ICE候选者</p>
 			<div class="space-y-1 max-h-32 overflow-y-auto">
@@ -307,7 +264,6 @@ function getNatDescription(type: string): string {
 			<li><span class="text-[var(--primary)]">Restricted Cone</span> - 受限锥形，需要先发送数据</li>
 			<li><span class="text-[var(--primary)]">Port Restricted Cone</span> - 端口受限，需要特定端口</li>
 			<li><span class="text-red-300">Symmetric</span> - 对称型，P2P困难，需中继</li>
-			<li><span class="text-blue-400">IPv6可直连</span> - 公网可达，无需NAT</li>
 		</ul>
 	</div>
 </div>
