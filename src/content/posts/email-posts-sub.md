@@ -1,5 +1,5 @@
 ---
-title: email-posts-sub
+title: 手搓一个电子邮件订阅器！
 published: 2026-04-03T19:19:05
 description: 你可曾想过手搓一个基于邮件形式的文章订阅器？读者只需告诉系统邮箱，之后的文章更新都会发一封邮件来通知他们！
 image: ../assets/images/email.png
