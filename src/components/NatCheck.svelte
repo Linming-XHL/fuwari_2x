@@ -47,10 +47,12 @@
         if (resolved) return; 
         resolved = true;
         logItem(`Gathered ${srflxSet.size} unique srflx mappings.`);
-        (window as any)._pc_keepalive = pc;
         resolve({
-          localIPs: [...hostSet], srflx: [...srflxSet.values()],
-          browser_ufrag: bUfrag, browser_pwd: bPwd, server_ufrag: sUfrag
+          data: {
+            localIPs: [...hostSet], srflx: [...srflxSet.values()],
+            browser_ufrag: bUfrag, browser_pwd: bPwd, server_ufrag: sUfrag
+          },
+          pc
         });
       };
 
@@ -111,13 +113,17 @@
     resultData = null;
     logs = [];
     logItem("System ready.");
+    
+    let pc: any = null;
 
     try {
       // 按照配置写死主节点和副节点 IP
       const primaryHost = "87.83.110.226";
       const secHost = "156.246.89.186";
 
-      const data = await gatherCandidates(primaryHost, secHost);
+      const res_gather: any = await gatherCandidates(primaryHost, secHost);
+      const data = res_gather.data;
+      pc = res_gather.pc;
       logItem(`Sending context to server for deep active inspection...`);
       logItem(`Awaiting active filtering UDP probes...`);
       
@@ -133,12 +139,15 @@
       const json = await res.json();
       logItem(`Server detection result: ${json.type}`);
       resultData = json;
-      
       scrollToBottom();
     } catch(e: any) {
       logItem(`Error: ${e.message}`);
       logItem(`提示: 后端可能未启动，或者存在CORS跨域限制。`);
     } finally {
+      if (pc) {
+        pc.close();
+        logItem("WebRTC connection closed.");
+      }
       isTesting = false;
     }
   }
