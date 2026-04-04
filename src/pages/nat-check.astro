@@ -1,0 +1,17 @@
+---
+import NatCheck from "@components/NatCheck.svelte";
+import PageCardHeader from "@components/misc/PageCardHeader.astro";
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+
+const title = "NAT 类型检测";
+---
+
+<MainGridLayout title={title}>
+	<div class="card-base p-6 md:p-8">
+		<PageCardHeader title={title} icon="material-symbols:network-check-rounded" pathname="/nat-check/" />
+		<p class="mb-6 text-sm leading-relaxed text-50">
+			通过基于 Twin-Server 架构进行 STUN 检测，结合 WebRTC 测试您的网络环境是否属于全锥形、受限锥形、对称型等，以便分析 P2P 连通条件。
+		</p>
+		<NatCheck client:load />
+	</div>
+</MainGridLayout>
