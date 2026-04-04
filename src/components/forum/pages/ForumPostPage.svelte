@@ -13,9 +13,9 @@ import { getPost, likePost } from "@/forum/api/posts";
 import {
 	type NewCommentPayload,
 	type PostUpdatedPayload,
-	disconnectForumWebSocket,
-	getForumWebSocket,
-} from "@/forum/api/websocket";
+	disconnectForumSSE,
+	getForumSSE,
+} from "@/forum/api/sse";
 import { forumAuth } from "@/forum/stores/auth";
 import { ForumApiError } from "@/forum/types/api";
 import type { ForumComment } from "@/forum/types/comment";
@@ -55,8 +55,8 @@ const commentSortOptions: Array<{ value: string; label: string }> = [
 	{ value: "latest", label: "最新" },
 ];
 let commentSort = "hot";
-let forumWebSocket = getForumWebSocket();
-let wsConnected = false;
+let forumSSE = getForumSSE();
+let sseConnected = false;
 
 function refreshCommentCount() {
 	if (!post) return;
@@ -102,38 +102,37 @@ function handlePostUpdated(payload: Record<string, unknown>) {
 	}
 }
 
-function setupWebSocket() {
+function setupSSE() {
 	if (!postId) {
-		console.log("[ForumPostPage] No postId, skipping WebSocket setup");
+		console.log("[ForumPostPage] No postId, skipping SSE setup");
 		return;
 	}
 
-	console.log("[ForumPostPage] Setting up WebSocket for post:", postId);
+	console.log("[ForumPostPage] Setting up SSE for post:", postId);
 
-	forumWebSocket.on("new_comment", handleNewComment);
-	forumWebSocket.on("post_updated", handlePostUpdated);
-	forumWebSocket.on("connected", () => {
-		wsConnected = true;
-		console.log("[ForumPostPage] WebSocket connected for post:", postId);
+	forumSSE.on("new_comment", handleNewComment);
+	forumSSE.on("post_updated", handlePostUpdated);
+	forumSSE.on("connected", () => {
+		sseConnected = true;
+		console.log("[ForumPostPage] SSE connected for post:", postId);
 	});
-	forumWebSocket.on("disconnected", () => {
-		wsConnected = false;
-		console.log("[ForumPostPage] WebSocket disconnected");
+	forumSSE.on("disconnected", () => {
+		sseConnected = false;
+		console.log("[ForumPostPage] SSE disconnected");
 	});
-	forumWebSocket.on("subscribed", (payload) => {
-		console.log("[ForumPostPage] WebSocket subscribed event:", payload);
+	forumSSE.on("subscribed", (payload) => {
+		console.log("[ForumPostPage] SSE subscribed event:", payload);
 	});
 
-	// 连接WebSocket并订阅当前帖子
-	forumWebSocket.connect(postId);
+	forumSSE.connect(postId);
 }
 
-function cleanupWebSocket() {
-	forumWebSocket.off("new_comment", handleNewComment);
-	forumWebSocket.off("post_updated", handlePostUpdated);
-	forumWebSocket.off("connected", () => {});
-	forumWebSocket.off("disconnected", () => {});
-	forumWebSocket.disconnect();
+function cleanupSSE() {
+	forumSSE.off("new_comment", handleNewComment);
+	forumSSE.off("post_updated", handlePostUpdated);
+	forumSSE.off("connected", () => {});
+	forumSSE.off("disconnected", () => {});
+	forumSSE.disconnect();
 }
 
 function getCommentSortQuery(sort: string): CommentListQuery {
@@ -460,7 +459,7 @@ onMount(() => {
 	if (postId) {
 		loadPost();
 		loadComments();
-		setupWebSocket();
+		setupSSE();
 	} else {
 		loading = false;
 		commentsLoading = false;
@@ -468,7 +467,7 @@ onMount(() => {
 	}
 	return () => {
 		unsubscribe();
-		cleanupWebSocket();
+		cleanupSSE();
 	};
 });
 </script>
@@ -529,8 +528,8 @@ onMount(() => {
 					<div class="flex flex-wrap gap-3">
 						<div class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-white/60">
 							<div class="flex items-center gap-2">
-								<span class="h-2 w-2 rounded-full {wsConnected ? 'bg-green-400' : 'bg-red-400'}"></span>
-								<span>{wsConnected ? '实时连接' : '未连接'}</span>
+								<span class="h-2 w-2 rounded-full {sseConnected ? 'bg-green-400' : 'bg-red-400'}"></span>
+								<span>{sseConnected ? '实时连接' : '未连接'}</span>
 							</div>
 						</div>
 						<a href="/forum/" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-white/60">返回论坛首页</a>
