@@ -10,8 +10,15 @@ tags:
   - Cloudflare Byoip
 title: 试试Cloudflare IP优选！让Cloudflare在国内再也不是减速器！
 ---
-> 本教程初始发布时间为 25年6月
+# 相关视频：
+- SaaS原理： https://www.bilibili.com/video/BV1A5rpBqENh/
+- Worker/Pages优选： https://www.bilibili.com/video/BV1KNmtB6EU7/
+- R2优选： https://www.bilibili.com/video/BV115KLzSEiv/
+- Tunnel优选： https://www.bilibili.com/video/BV1WGMAznEBd/
+- 自建优选： https://www.bilibili.com/video/BV1H38vzoEcq/ https://www.bilibili.com/video/BV1zpgBz7EHK/
 
+> [!info]
+> 所有优选一个域名即可，无需两个域名。如： `s.2x.nz` 和 `s-s.2x.nz` 即可完成优选
 #### 未优选
 
 ![QmZoinxZgAzu7Skh7BqsxmDQGU1sXtLLskJcyQuRAQNKww.webp](../assets/images/098f9ee71ae62603022e542878673e19bdcaf196.webp)
