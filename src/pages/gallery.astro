@@ -47,7 +47,7 @@ import MainGridLayout from "@layouts/MainGridLayout.astro";
 		import Masonry from "masonry-layout";
 		import imagesLoaded from "imagesloaded";
 		import { Fancybox } from "@fancyapps/ui";
-		import { scrollLockHooks } from "@utils/fancybox";
+		import { fancyboxOptions as baseOptions } from "@utils/fancybox";
 
 		const RANDOM_JS_URL = "https://p.2x.nz/random.js";
 		const DOMAIN = "https://p.2x.nz";
@@ -315,6 +315,7 @@ import MainGridLayout from "@layouts/MainGridLayout.astro";
 		}
 
 		const fancyboxOptions = {
+			...baseOptions,
 			groupAll: false,
 			Toolbar: {
 				display: {
@@ -337,7 +338,6 @@ import MainGridLayout from "@layouts/MainGridLayout.astro";
 			Carousel: {
 				Navigation: false,
 			},
-			...scrollLockHooks,
 		};
 
 		Fancybox.bind("[data-fancybox]", fancyboxOptions);

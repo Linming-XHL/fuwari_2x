@@ -1,23 +1,8 @@
 import { Fancybox } from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 
-const scrollLockHooks: {
-	on: {
-		ready: () => void;
-		closing: () => void;
-	};
-} = {
-	on: {
-		ready: (): void => {
-			document.documentElement.style.overflow = "scroll";
-		},
-		closing: (): void => {
-			document.documentElement.style.removeProperty("overflow");
-		},
-	},
-};
-
 const fancyboxOptions: any = {
+	hideScrollbar: false,
 	wheel: "zoom",
 	clickContent: "close",
 	dblclickContent: "zoom",
@@ -31,7 +16,6 @@ const fancyboxOptions: any = {
 		zoom: true,
 		protect: false,
 	},
-	...scrollLockHooks,
 };
 
 export function bindFancybox(selector: string): void {
@@ -53,8 +37,6 @@ export function cleanupFancybox(): void {
 	document
 		.querySelectorAll(".fancybox__container")
 		.forEach((el) => el.remove());
-	document.documentElement.style.removeProperty("overflow");
-	document.body.style.removeProperty("overflow");
 }
 
 export function restoreNativeScrollIfSafe(): void {
@@ -63,8 +45,6 @@ export function restoreNativeScrollIfSafe(): void {
 		".cc_overlay, .cc_modal, .cc_preferences, .cc_dialog, .cc_cp, .cc_nb, .cc_banner",
 	);
 	if (hasFancybox || hasCookieModal) return;
-	document.documentElement.style.removeProperty("overflow");
-	document.body.style.removeProperty("overflow");
 }
 
-export { fancyboxOptions, scrollLockHooks };
+export { fancyboxOptions };
