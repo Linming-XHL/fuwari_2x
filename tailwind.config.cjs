@@ -11,9 +11,10 @@ module.exports = {
 			typography: {
 				DEFAULT: {
 					css: {
+						"--tw-prose-body": null,
 						p: {
-							marginTop: null,
-							marginBottom: null,
+							"margin-top": "0",
+							"margin-bottom": "0",
 						},
 					},
 				},
