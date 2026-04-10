@@ -16,6 +16,10 @@ import {
 	setTheme,
 } from "../utils/setting-utils";
 import { url, pathsEqual } from "../utils/url-utils";
+import {
+	monitorSwupInitialization,
+	setupLinkInterceptor,
+} from "./swup-link-intercept";
 
 const bannerEnabled = !!document.getElementById("banner-wrapper");
 
@@ -143,7 +147,9 @@ function init() {
 	syncSidebarProfileMode();
 
 	new MutationObserver(() => {
-		const frame = document.querySelector<HTMLIFrameElement>("iframe.giscus-frame");
+		const frame = document.querySelector<HTMLIFrameElement>(
+			"iframe.giscus-frame",
+		);
 		if (!frame || !frame.contentWindow) return;
 		frame.contentWindow.postMessage(
 			{ giscus: { setConfig: { theme: "dark" } } },
@@ -157,8 +163,9 @@ function init() {
 
 init();
 bindPostInlineDiff();
+setupLinkInterceptor();
 
-const setup = () => {
+const setup = async () => {
 	const SORT_PATHS = [
 		"/",
 		"/date-asc/",
@@ -174,6 +181,10 @@ const setup = () => {
 			return clean === cleanP || clean.startsWith(cleanP + "/");
 		});
 	};
+
+	if (!window.swup) return;
+
+	await monitorSwupInitialization();
 
 	window.swup.hooks.on("link:click", (visit: { el?: HTMLElement }) => {
 		document.documentElement.style.setProperty("--content-delay", "0ms");
@@ -261,7 +272,7 @@ const setup = () => {
 	});
 };
 if (window?.swup?.hooks) {
-	setup();
+	await setup();
 } else {
 	document.addEventListener("swup:enable", setup);
 }
