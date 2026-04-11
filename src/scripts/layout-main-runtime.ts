@@ -154,6 +154,21 @@ function init() {
 	showBanner();
 	loadGiscus();
 	syncSidebarProfileMode();
+	
+	// 初始化 sidebar 动画状态
+	const sidebar = document.getElementById("sidebar");
+	const currentPath = window.location.pathname;
+	const isCurrentForum = isForumPath(currentPath);
+	
+	if (sidebar) {
+		if (isCurrentForum) {
+			sidebar.classList.remove("sidebar-static");
+			sidebar.classList.add("transition-swup-fade");
+		} else {
+			sidebar.classList.add("sidebar-static");
+			sidebar.classList.remove("transition-swup-fade");
+		}
+	}
 
 	new MutationObserver(() => {
 		const frame = document.querySelector<HTMLIFrameElement>(
@@ -250,17 +265,28 @@ const setup = async () => {
 				sortContainer.classList.remove("sort-keep");
 			}
 
-			// Forum transition detection: add sidebar to containers if switching between forum and non-forum
+			// Forum transition detection
 			const isCurrentForum = isForumPath(currentPath);
 			const isTargetForum = isForumPath(targetPath);
-			const isForumTransition = isCurrentForum !== isTargetForum;
+			const sidebar = document.getElementById("sidebar");
 
-			if (isForumTransition) {
-				// Add sidebar to Swup containers for animation
-				const sidebar = document.getElementById("sidebar");
-				if (sidebar && !visit.containers?.includes("#sidebar")) {
-					visit.containers = visit.containers || ["#swup-container", "#swup-footer", "#toc"];
-					visit.containers.push("#sidebar");
+			// 涉及论坛的切换：sidebar 需要动画
+			// 1. 首页 ↔ 论坛
+			// 2. 论坛内部切换
+			// 3. 其他页面 ↔ 论坛
+			const shouldAnimateSidebar = isCurrentForum || isTargetForum;
+
+			if (shouldAnimateSidebar) {
+				// sidebar 参与动画
+				if (sidebar) {
+					sidebar.classList.remove("sidebar-static");
+					sidebar.classList.add("transition-swup-fade");
+				}
+			} else {
+				// sidebar 不参与动画（首页 ↔ 其他非论坛页面）
+				if (sidebar) {
+					sidebar.classList.add("sidebar-static");
+					sidebar.classList.remove("transition-swup-fade");
 				}
 			}
 		},
