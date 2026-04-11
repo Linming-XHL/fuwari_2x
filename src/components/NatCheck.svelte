@@ -126,8 +126,8 @@
 
     try {
       // 按照配置写死主节点和副节点 IP
-      const primaryHost = "87.83.110.226";
-      const secHost = "156.246.89.186";
+      const primaryHost = "64.110.118.255";
+      const secHost = "161.33.17.215";
 
       const res_gather: any = await gatherCandidates(primaryHost, secHost);
       const data = res_gather.data;
