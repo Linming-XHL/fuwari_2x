@@ -14,13 +14,11 @@ html.is-animating .transition-swup-fade {
 }
 
 /* Fade-in animations for components */
-@keyframes fade-in-up {
+@keyframes fade-in {
     0% {
-        transform: translateY(2rem);
         opacity: 0;
     }
     100% {
-        transform: translateY(0);
         opacity: 1;
     }
 }
@@ -28,7 +26,7 @@ html.is-animating .transition-swup-fade {
 /* Main components */
 .onload-animation {
     opacity: 0;
-    animation: 300ms fade-in-up;
+    animation: 300ms fade-in;
     animation-fill-mode: forwards;
 }
 #navbar {
@@ -55,6 +53,6 @@ html.is-animating .transition-swup-fade {
 /* Forum content fade-in */
 .forum-fade-in {
     opacity: 0;
-    animation: 300ms fade-in-up forwards;
+    animation: 300ms fade-in forwards;
 }
 

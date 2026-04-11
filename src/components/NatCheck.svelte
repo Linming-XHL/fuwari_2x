@@ -196,7 +196,7 @@
   </div>
 
   {#if resultData}
-    <div class={`p-6 rounded-2xl border ${getResultStyle(resultData.type)} flex flex-col items-center justify-center text-center transition-all duration-300 animate-fade-in-up`}>
+    <div class={`p-6 rounded-2xl border ${getResultStyle(resultData.type)} flex flex-col items-center justify-center text-center transition-all duration-300 animate-fade-in`}>
       <h2 class="text-xl md:text-2xl font-bold mb-3">{resultData.label}</h2>
       <p class="text-sm md:text-base opacity-90">{resultData.details}</p>
     </div>
@@ -204,17 +204,15 @@
 </div>
 
 <style>
-  @keyframes fadeInUp {
+  @keyframes fade-in {
     from {
       opacity: 0;
-      transform: translateY(10px);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
     }
   }
-  .animate-fade-in-up {
-    animation: fadeInUp 0.4s ease-out forwards;
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out forwards;
   }
 </style>

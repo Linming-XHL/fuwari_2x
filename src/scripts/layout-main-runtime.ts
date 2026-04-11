@@ -289,22 +289,8 @@ const setup = async () => {
 			heightExtend.classList.remove("hidden");
 		}
 		
-		// 确保新页面的 sidebar 也有正确的动画类
-		const currentPath = window.location.pathname;
-		const isCurrentForum = isForumPath(currentPath);
-		const sidebarElement = document.getElementById("swup-sidebar");
-		
-		console.log('Setting sidebar class for new page, isForumRoute:', isCurrentForum);
-		
-		if (isCurrentForum && sidebarElement) {
-			// 论坛页面：确保 sidebar 有动画类
-			sidebarElement.classList.add("transition-swup-fade");
-			console.log('Added transition-swup-fade to new sidebar');
-		} else if (sidebarElement) {
-			// 非论坛页面：移除动画类
-			sidebarElement.classList.remove("transition-swup-fade");
-			console.log('Removed transition-swup-fade from new sidebar');
-		}
+		// 不在这里移除动画类，让动画完成
+		// 动画类的移除在 visit:end 中处理
 		
 		scrollFunction();
 		loadGiscus();
@@ -313,6 +299,8 @@ const setup = async () => {
 
 	// visit:end hook - 访问结束后的清理工作
 	window.swup.hooks.on("visit:end", () => {
+		console.log('=== VISIT END ===');
+		
 		setTimeout(() => {
 			const heightExtend = document.getElementById("page-height-extend");
 			if (heightExtend) {
@@ -327,6 +315,19 @@ const setup = async () => {
 			const sortContainer = document.getElementById("sort-container");
 			if (sortContainer) {
 				sortContainer.classList.remove("sort-keep");
+			}
+			
+			// 在动画完成后，根据当前路径决定是否保留 sidebar 的动画类
+			const currentPath = window.location.pathname;
+			const isCurrentForum = isForumPath(currentPath);
+			const sidebarElement = document.getElementById("swup-sidebar");
+			
+			console.log('visit:end - Cleaning up sidebar class, isForumRoute:', isCurrentForum);
+			
+			if (!isCurrentForum && sidebarElement) {
+				// 非论坛页面：移除动画类
+				sidebarElement.classList.remove("transition-swup-fade");
+				console.log('Removed transition-swup-fade after animation complete');
 			}
 		}, 200);
 	});

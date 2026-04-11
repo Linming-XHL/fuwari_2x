@@ -120,7 +120,7 @@ $: commentTree = buildCommentTree(comments);
 			</div>
 			<div class="space-y-3">
 				{#each commentTree as comment, i (comment.id)}
-				<div style="animation: fade-in-up 200ms {i * 50}ms forwards; opacity: 0;">
+				<div style="animation: fade-in 200ms {i * 50}ms forwards; opacity: 0;">
 					<CommentItem
 						{comment}
 						{activeReplyParentId}
@@ -160,3 +160,14 @@ $: commentTree = buildCommentTree(comments);
 		</div>
 	{/if}
 </div>
+
+<style>
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+</style>
