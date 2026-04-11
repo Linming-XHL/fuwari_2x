@@ -117,12 +117,11 @@ if (document.readyState === "loading") {
     void renderMermaidBlocks();
 }
 
-if ((window as any).swup?.hooks) {
-    (window as any).swup.hooks.on("page:view", () => {
-        wrapMarkdownTables();
-        void renderMermaidBlocks();
-    });
-}
+// Listen for Swup page transitions
+document.addEventListener("swup:contentReplaced", () => {
+    wrapMarkdownTables();
+    void renderMermaidBlocks();
+});
 
 document.addEventListener("click", function (e: MouseEvent) {
     const target = e.target as Element | null;
