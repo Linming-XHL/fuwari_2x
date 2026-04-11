@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "posts/cf-fastip.md",
+                "file": "posts/oci.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "cf-fastip"
+              "title": "oci"
             }
           }
         ]
@@ -171,6 +171,9 @@
   },
   "active": "f6b5e7abc96521b9",
   "lastOpenFiles": [
+    "assets/images/oci.png",
+    "posts/cf-fastip.md",
+    "posts/oracle.md",
     "posts/obsidian.md",
     "posts/what-the-fuck-claw-replit.md",
     "assets/images/what-the-fuck-claw-replit-9.png",
@@ -191,7 +194,6 @@
     "posts/concurrently.md",
     "posts/rj45.md",
     "posts/codex-unlimited-blade-works.md",
-    "posts/cf-fastip.md",
     "posts/privacy-policy.md",
     "posts/snippets.md",
     "posts/random-url-gen.md",
@@ -205,9 +207,7 @@
     "posts/gh-cf.md",
     "posts/gh-proxy.md",
     "posts/obs-realtime-process-name.md",
-    "posts/cookie-consent.md",
     "posts/codex-unlimited-blade-works.md.tmp.47664.1772805958791",
-    "posts/ai-agent.md",
     "posts/codex-unlimited-blade-works.md.tmp.47664.1772804894124",
     "CLAUDE.md.tmp.51576.1772767822869",
     "assets/images",
