@@ -39,7 +39,7 @@ const sidebarLiveStatusPayload = {
             <Profile></Profile>
         </div>
         <div id="sidebar-profile-forum" class:list={[{ hidden: !isForumRoute }]}>
-            <ForumSidebarProfileCard client:only="svelte" />
+            <ForumSidebarProfileCard client:load />
         </div>
     </div>
     <div id="sidebar-sticky" class="transition-all duration-700 flex flex-col w-full gap-4 top-4 sticky top-4" style="top: calc(var(--navbar-offset, 0px) + 1rem);">
