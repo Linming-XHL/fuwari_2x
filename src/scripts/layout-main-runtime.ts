@@ -156,17 +156,15 @@ function init() {
 	syncSidebarProfileMode();
 	
 	// 初始化 sidebar 动画状态
-	const sidebar = document.getElementById("sidebar");
+	const sidebar = document.getElementById("swup-sidebar");
 	const currentPath = window.location.pathname;
 	const isCurrentForum = isForumPath(currentPath);
 	
 	if (sidebar) {
 		if (isCurrentForum) {
 			sidebar.classList.remove("sidebar-static");
-			sidebar.classList.add("transition-swup-fade");
 		} else {
 			sidebar.classList.add("sidebar-static");
-			sidebar.classList.remove("transition-swup-fade");
 		}
 	}
 
@@ -268,25 +266,20 @@ const setup = async () => {
 			// Forum transition detection
 			const isCurrentForum = isForumPath(currentPath);
 			const isTargetForum = isForumPath(targetPath);
-			const sidebar = document.getElementById("sidebar");
+			const sidebar = document.getElementById("swup-sidebar");
 
 			// 涉及论坛的切换：sidebar 需要动画
-			// 1. 首页 ↔ 论坛
-			// 2. 论坛内部切换
-			// 3. 其他页面 ↔ 论坛
 			const shouldAnimateSidebar = isCurrentForum || isTargetForum;
 
 			if (shouldAnimateSidebar) {
-				// sidebar 参与动画
+				// sidebar 参与动画：移除 sidebar-static 类
 				if (sidebar) {
 					sidebar.classList.remove("sidebar-static");
-					sidebar.classList.add("transition-swup-fade");
 				}
 			} else {
-				// sidebar 不参与动画（首页 ↔ 其他非论坛页面）
+				// sidebar 不参与动画：添加 sidebar-static 类
 				if (sidebar) {
 					sidebar.classList.add("sidebar-static");
-					sidebar.classList.remove("transition-swup-fade");
 				}
 			}
 		},

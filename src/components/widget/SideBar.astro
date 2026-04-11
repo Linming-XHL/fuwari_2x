@@ -12,12 +12,10 @@ import LiveTimetableStatus from "@components/timetable/LiveTimetableStatus.astro
 import Profile from "./Profile.astro";
 
 interface Props {
-	class?: string;
 	headings?: MarkdownHeading[];
 	isForumRoute?: boolean;
 }
 
-const className = Astro.props.class;
 const isForumRoute = Astro.props.isForumRoute ?? false;
 const forumBasePath = url("/forum/");
 
@@ -35,7 +33,7 @@ const sidebarLiveStatusPayload = {
 };
 ---
 
-<div id="sidebar" class:list={[className, "w-full"]} data-forum-base-path={forumBasePath}>
+<div id="sidebar" class="w-full" data-forum-base-path={forumBasePath}>
     <div class="flex flex-col w-full gap-4 mb-4">
         <div id="sidebar-profile-blog" class:list={[{ hidden: isForumRoute }]}>
             <Profile></Profile>
