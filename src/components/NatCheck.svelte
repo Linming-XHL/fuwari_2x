@@ -60,6 +60,7 @@
       pc.onicecandidate = e => {
         if (!e.candidate) { 
           logItem("ICE gathering completed."); 
+          logItem(`Collected ${hostSet.size} host IPs: ${[...hostSet].join(', ') || 'none'}`);
           complete(); 
           return; 
         }
@@ -68,10 +69,16 @@
         
         const parts = cand.split(' ');
         const ip = parts[4], port = parseInt(parts[5]), typ = parts[7];
-        if (typ === 'host' && ip && !ip.startsWith('169.254') && ip !== '0.0.0.0' && !ip.includes(':')) {
+        
+        // 收集 host 类型的 IP（包括 IPv4 和 IPv6）
+        if (typ === 'host' && ip && !ip.startsWith('169.254') && ip !== '0.0.0.0') {
           hostSet.add(ip);
+          logItem(`Added host IP: ${ip}`);
         }
-        if (typ === 'srflx') srflxSet.set(ip + ':' + port, { ip, port });
+        if (typ === 'srflx') {
+          srflxSet.set(ip + ':' + port, { ip, port });
+          logItem(`Added srflx mapping: ${ip}:${port}`);
+        }
       };
 
       pc.createOffer().then(async offer => {
