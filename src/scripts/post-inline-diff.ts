@@ -739,13 +739,7 @@ export function bindPostInlineDiff(): void {
 	if (w.__fuwariPostInlineDiffBound) return;
 	w.__fuwariPostInlineDiffBound = true;
 	document.addEventListener("DOMContentLoaded", initPostInlineDiff);
-	document.addEventListener("swup:contentReplaced", initPostInlineDiff);
+	document.addEventListener("astro:page-load", initPostInlineDiff);
 	window.addEventListener("fuwari:diff-debug-updated", initPostInlineDiff);
-	const bindSwupHook = () => {
-		const swup = (window as any)?.swup;
-		if (swup?.hooks?.on) swup.hooks.on("page:view", initPostInlineDiff);
-	};
-	if ((w as any)?.swup?.hooks?.on) bindSwupHook();
-	else document.addEventListener("swup:enable", bindSwupHook, { once: true });
 	if (document.readyState !== "loading") initPostInlineDiff();
 }
