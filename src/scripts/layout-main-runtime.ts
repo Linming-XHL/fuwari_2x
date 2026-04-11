@@ -189,6 +189,7 @@ bindPostInlineDiff();
 setupLinkInterceptor();
 
 const setup = async () => {
+	console.log('[setup] Starting Swup hooks registration...');
 	const SORT_PATHS = [
 		"/",
 		"/date-asc/",
@@ -205,9 +206,13 @@ const setup = async () => {
 		});
 	};
 
-	if (!window.swup) return;
+	if (!window.swup) {
+		console.log('[setup] window.swup not found, aborting');
+		return;
+	}
 
 	await monitorSwupInitialization();
+	console.log('[setup] Swup initialized, registering hooks...');
 
 	window.swup.hooks.on("link:click", (visit: { el?: HTMLElement }) => {
 		document.documentElement.style.setProperty("--content-delay", "0ms");
@@ -294,10 +299,13 @@ const setup = async () => {
 			}
 		}, 200);
 	});
+	console.log('[setup] All hooks registered successfully');
 };
 if (window?.swup?.hooks) {
+	console.log('[layout-main-runtime] Swup already initialized, calling setup immediately');
 	await setup();
 } else {
+	console.log('[layout-main-runtime] Swup not ready, waiting for swup:enable event');
 	document.addEventListener("swup:enable", setup);
 }
 
