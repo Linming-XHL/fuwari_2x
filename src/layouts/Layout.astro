@@ -199,13 +199,13 @@ const bannerOffset =
 		<style define:vars={{
 			configHue,
 			'page-width': `${PAGE_WIDTH}rem`,
-			'bg-src': '',
-			'bg-enable': '0',
+			'bg-src': 'url(https://p.2x.nz/api/random)',
+			'bg-enable': '1',
 			'bg-position': 'center',
 			'bg-size': 'cover',
 			'bg-repeat': 'no-repeat',
 			'bg-attachment': 'fixed',
-			'bg-opacity': '0'
+			'bg-opacity': '0.15'
 		}}>
 			:root {
 				--bg-src: var(--bg-src);
@@ -234,7 +234,7 @@ const bannerOffset =
 			left: 0;
 			width: 100%;
 			height: 100%;
-			background-image: none;
+			background-image: var(--bg-src);
 			background-position: var(--bg-position);
 			background-size: var(--bg-size);
 			background-repeat: var(--bg-repeat);
@@ -280,6 +280,18 @@ const bannerOffset =
 			</style>
 		</noscript>
 		<div id="bg-box"></div>
+		<script is:inline>
+			// Load background image
+			(function() {
+				const bgBox = document.getElementById('bg-box');
+				if (bgBox) {
+					// Add loaded class to trigger opacity transition
+					setTimeout(() => {
+						bgBox.classList.add('loaded');
+					}, 100);
+				}
+			})();
+		</script>
 		<ConfigCarrier></ConfigCarrier>
 		<GlobalToaster client:only="svelte" />
         {showNewPostNotification && <NewPostNotification></NewPostNotification>}
