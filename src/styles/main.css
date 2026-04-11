@@ -62,13 +62,13 @@
     }
     .expand-animation {
         @apply relative before:ease-out before:transition active:bg-none hover:before:bg-[var(--btn-plain-bg-hover)] active:before:bg-[var(--btn-plain-bg-active)] z-0
-        before:absolute before:rounded-[inherit] before:inset-0 before:scale-[0.85] hover:before:scale-100 before:-z-10
+        before:absolute before:inset-0 before:scale-[0.85] hover:before:scale-100 before:-z-10
     }
     .link {
-        @apply transition rounded-md p-1 -m-1 expand-animation;
+        @apply transition p-1 -m-1 expand-animation;
     }
     .link-lg {
-        @apply transition rounded-md p-1.5 -m-1.5 expand-animation;
+        @apply transition p-1.5 -m-1.5 expand-animation;
     }
     .float-panel {
         @apply top-[5.25rem] overflow-hidden bg-[var(--float-panel-bg)] transition shadow-none;
@@ -134,12 +134,12 @@
     }
 
     .page-title-icon {
-        @apply h-8 w-8 rounded-lg bg-[var(--primary)] flex items-center justify-center text-black/70;
+        @apply h-8 w-8 bg-[var(--primary)] flex items-center justify-center text-black/70 border border-white/10;
     }
 
     .meta-icon {
-        @apply w-8 h-8 transition rounded-md flex items-center justify-center bg-[var(--btn-regular-bg)]
-        text-[var(--btn-content)] mr-2
+        @apply w-8 h-8 transition flex items-center justify-center bg-[var(--btn-regular-bg)]
+        text-[var(--btn-content)] mr-2 border border-white/10
     }
     .with-divider {
         @apply before:content-['/'] before:ml-1.5 before:mr-1.5 before:text-[var(--meta-divider)] before:text-sm
