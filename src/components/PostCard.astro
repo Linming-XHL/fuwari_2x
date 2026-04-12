@@ -153,16 +153,7 @@ const { remarkPluginFrontmatter } = await entry.render();
                     return;
                 }
                 
-                const startVal = parseInt(el.textContent) || 0;
-                
-                if (startVal !== pageviews) {
-                    // 只有当开始值是0的时候才播放动画（首次加载）
-                    if (startVal === 0) {
-                         animateValue(el, startVal, pageviews, 1000);
-                    } else {
-                         el.innerHTML = pageviews;
-                    }
-                }
+                el.innerHTML = pageviews;
             } catch (e) {
                 console.error('Failed to load stats for', url, e);
             }
