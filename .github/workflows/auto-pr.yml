@@ -216,12 +216,12 @@ jobs:
 
             async function getSiteBase() {
               try {
-                const raw = await getTextFileFromRepo('astro.config.mjs', context.payload.repository.default_branch)
-                const m = raw.match(/\bsite\s*:\s*["']([^"']+)["']/)
+                const raw = await getTextFileFromRepo('src/config.ts', context.payload.repository.default_branch)
+                const m = raw.match(/customDomain\s*=\s*["']([^"']+)["']/)
                 if (!m) return null
-                return m[1]
+                return `https://${m[1]}`
               } catch (e) {
-                core.warning(`Failed to read astro.config.mjs: ${e?.message || e}`)
+                core.warning(`Failed to read src/config.ts: ${e?.message || e}`)
                 return null
               }
             }
@@ -740,10 +740,10 @@ jobs:
 
             async function getSiteBase(defaultBranch) {
               try {
-                const raw = await getTextFileFromRepo('astro.config.mjs', defaultBranch)
-                const m = raw.match(/\bsite\s*:\s*["']([^"']+)["']/)
+                const raw = await getTextFileFromRepo('src/config.ts', defaultBranch)
+                const m = raw.match(/customDomain\s*=\s*["']([^"']+)["']/)
                 if (!m) return null
-                return m[1]
+                return `https://${m[1]}`
               } catch {
                 return null
               }
