@@ -322,3 +322,10 @@ crontab -e
 接着将 `2x.nz` CNAME `oracle.2x.nz` 
 
 ![](../assets/images/self-host-cdn-4.png)
+
+# 高级
+
+> 由于我们有两台Linux的完整控制权限，我们就可以实现一些高级功能...
+
+- 通过 iptables 在L4层丢弃拨测IP发送的包，做到拨测网站全红😋
+- 通过 iptables 设置L4层的TCP连接数速率限制，实现L4层防DDoS
