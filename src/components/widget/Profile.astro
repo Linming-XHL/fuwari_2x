@@ -115,6 +115,15 @@ for (const post of posts) {
         }
     }
     
+    /* 直播链接包裹器 */
+    :global(.live-link-wrapper) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    
     /* 直播中文字覆盖 */
     :global(.live-badge) {
         text-align: center;
@@ -181,12 +190,27 @@ for (const post of posts) {
                 // 直播中：添加红色外框扩散效果
                 avatarWrapper.classList.add('live-avatar-ring');
                 
-                // 在头像容器下方添加"直播中"文字
+                // 创建包裹整个容器的链接
+                const liveLink = document.createElement('a');
+                liveLink.href = 'https://live.bilibili.com/12005649';
+                liveLink.target = '_blank';
+                liveLink.rel = 'noopener noreferrer';
+                liveLink.className = 'live-link-wrapper';
+                
+                // 将头像容器的所有子元素移到链接中
+                while (avatarContainer.firstChild) {
+                    liveLink.appendChild(avatarContainer.firstChild);
+                }
+                
+                // 添加"直播中"文字
                 const liveBadge = document.createElement('div');
                 liveBadge.className = 'live-badge';
                 liveBadge.textContent = '直播中';
+                liveLink.appendChild(liveBadge);
+                
+                // 将链接添加回容器
                 avatarContainer.classList.add('has-live-badge');
-                avatarContainer.appendChild(liveBadge);
+                avatarContainer.appendChild(liveLink);
                 console.log('Live badge added');
             }
         } catch (error) {
