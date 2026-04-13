@@ -1,10 +1,16 @@
 import * as Diff from "diff";
+import {
+	normalizeGuid,
+	getRelativePath,
+	normalizePathname,
+	stripBasePath,
+	decodeHtmlEntities,
+} from "../utils/diff-utils";
 
 const NOTIFICATION_STATE_KEY = "fuwari-notification-state";
 const DEBUG_PARAM_KEY = "__diff_debug";
 const DEBUG_STATE_KEY = "fuwari-diff-debug-state";
 const CONTEXT_LINES = 2;
-const BASE_URL = import.meta.env.BASE_URL || "/";
 
 type DiffPart = { added?: boolean; removed?: boolean; value?: string };
 type DiffRow = { type: "add" | "del" | "ctx"; text: string };
@@ -17,12 +23,6 @@ function isLogEnabled() {
 		if (sp.get("__diff_debug") === "1") return true;
 	} catch {}
 	return (window as any).__fuwariDiffLog === true;
-}
-
-function decodeHtmlEntities(value: string) {
-	const t = document.createElement("textarea");
-	t.innerHTML = String(value ?? "");
-	return t.value;
 }
 
 function normalizeUrlForCompare(raw: string) {
@@ -42,43 +42,6 @@ function normalizeUrlForCompare(raw: string) {
 	} catch {
 		return v;
 	}
-}
-
-function normalizeGuid(guid: string, link: string) {
-	const value = (guid || link || "").trim();
-	if (!value) return "";
-	try {
-		const url = new URL(value, window.location.origin);
-		return `${url.pathname}${url.search}${url.hash}`;
-	} catch {
-		return value;
-	}
-}
-
-function getRelativePath(absoluteUrl: string) {
-	try {
-		const url = new URL(absoluteUrl, window.location.origin);
-		return `${url.pathname}${url.search}${url.hash}`;
-	} catch {
-		return absoluteUrl;
-	}
-}
-
-function normalizePathname(pathname: string) {
-	const p = String(pathname || "");
-	if (!p) return "/";
-	const noQueryHash = p.split("#")[0].split("?")[0];
-	if (noQueryHash.length > 1) return noQueryHash.replace(/\/+$/, "");
-	return "/";
-}
-
-function stripBasePath(pathname: string) {
-	const base = normalizePathname(BASE_URL);
-	const p = normalizePathname(pathname);
-	if (!base || base === "/") return p;
-	if (p === base) return "/";
-	if (p.startsWith(`${base}/`)) return p.slice(base.length) || "/";
-	return p;
 }
 
 function clearInlineDiff(container: HTMLElement) {
