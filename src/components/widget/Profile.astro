@@ -15,8 +15,10 @@ for (const post of posts) {
 }
 ---
 <div class="p-3 border-b border-white/10">
-    <div id="profile-avatar-wrapper" class="relative mx-auto lg:mx-0 mb-3 max-w-[12rem] md:max-w-[16rem] lg:max-w-none border border-white/10" style={`--theme-hue: ${siteConfig.themeColor.hue}`}>
-        <img src={config.avatar} alt="Profile Image of the Author" class="w-full h-full object-cover transition duration-500" width="640" height="640" loading="eager" decoding="async" />
+    <div id="profile-avatar-container" class="relative mx-auto lg:mx-0 mb-3 max-w-[12rem] md:max-w-[16rem] lg:max-w-none">
+        <div id="profile-avatar-wrapper" class="relative border border-white/10" style={`--theme-hue: ${siteConfig.themeColor.hue}`}>
+            <img src={config.avatar} alt="Profile Image of the Author" class="w-full h-full object-cover transition duration-500" width="640" height="640" loading="eager" decoding="async" />
+        </div>
     </div>
     <div class="px-2">
         <div class="font-bold text-xl text-center mb-1 text-neutral-50 transition"><h3>{config.name}</h3></div>
@@ -115,17 +117,21 @@ for (const post of posts) {
     
     /* 直播中文字覆盖 */
     .live-badge {
-        position: absolute;
-        bottom: 8px;
-        left: 50%;
-        transform: translateX(-50%);
+        text-align: center;
+        margin-top: 8px;
         background: rgba(239, 68, 68, 0.95);
         color: white;
         padding: 4px 12px;
         border-radius: 4px;
         font-size: 0.875rem;
         font-weight: bold;
-        z-index: 10;
+        display: inline-block;
+    }
+    
+    #profile-avatar-container.has-live-badge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
 </style>
 
@@ -154,8 +160,9 @@ for (const post of posts) {
     // 检测直播状态
     async function checkLiveStatus() {
         const avatarWrapper = document.getElementById('profile-avatar-wrapper');
-        if (!avatarWrapper) {
-            console.error('Avatar wrapper not found');
+        const avatarContainer = document.getElementById('profile-avatar-container');
+        if (!avatarWrapper || !avatarContainer) {
+            console.error('Avatar wrapper or container not found');
             return;
         }
         
@@ -174,11 +181,12 @@ for (const post of posts) {
                 // 直播中：添加红色外框扩散效果
                 avatarWrapper.classList.add('live-avatar-ring');
                 
-                // 在头像下方中间添加"直播中"文字
+                // 在头像容器下方添加"直播中"文字
                 const liveBadge = document.createElement('div');
                 liveBadge.className = 'live-badge';
                 liveBadge.textContent = '直播中';
-                avatarWrapper.appendChild(liveBadge);
+                avatarContainer.classList.add('has-live-badge');
+                avatarContainer.appendChild(liveBadge);
                 console.log('Live badge added');
             }
         } catch (error) {
