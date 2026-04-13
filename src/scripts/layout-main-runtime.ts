@@ -71,42 +71,6 @@ function showBanner() {
 	banner.classList.remove("opacity-0", "scale-105");
 }
 
-function loadGiscus() {
-	const container = document.getElementById("giscus-container");
-	if (!container) return;
-
-	if (
-		container.querySelector("iframe.giscus-frame") ||
-		container.querySelector('script[src*="giscus"]')
-	)
-		return;
-
-	const script = document.createElement("script");
-	script.src = "https://giscus.app/client.js";
-	const attributes = [
-		"data-repo",
-		"data-repo-id",
-		"data-category",
-		"data-category-id",
-		"data-mapping",
-		"data-strict",
-		"data-reactions-enabled",
-		"data-emit-metadata",
-		"data-input-position",
-		"data-lang",
-		"data-loading",
-	];
-	attributes.forEach((attr) => {
-		const val = container.getAttribute(attr);
-		if (val) script.setAttribute(attr, val);
-	});
-	script.setAttribute("data-theme", "https://2x.nz/css/giscus.css");
-	script.crossOrigin = "anonymous";
-	script.async = true;
-
-	container.appendChild(script);
-}
-
 function syncSidebarProfileMode() {
 	const sidebar = document.getElementById("sidebar");
 	const blogProfile = document.getElementById("sidebar-profile-blog");
@@ -172,7 +136,6 @@ function init() {
 	loadHue();
 	loadBgBlur();
 	showBanner();
-	loadGiscus();
 	syncSidebarProfileMode();
 	loadProfileStats();
 
