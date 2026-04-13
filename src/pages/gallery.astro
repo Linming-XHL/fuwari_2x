@@ -49,7 +49,7 @@ import MainGridLayout from "@layouts/MainGridLayout.astro";
 		import { Fancybox } from "@fancyapps/ui";
 		import { fancyboxOptions as baseOptions } from "@utils/fancybox";
 
-		const RANDOM_JS_URL = "https://p.2x.nz/random.js";
+		const COUNT_JSON_URL = "https://p.2x.nz/count.json";
 		const DOMAIN = "https://p.2x.nz";
 
 		let counts = { h: 0, v: 0 };
@@ -114,12 +114,9 @@ import MainGridLayout from "@layouts/MainGridLayout.astro";
 
 		async function fetchCounts() {
 			try {
-				const res = await fetch(RANDOM_JS_URL, { cache: "no-store" });
+				const res = await fetch(COUNT_JSON_URL, { cache: "no-store" });
 				if (!res.ok) throw new Error(String(res.status));
-				const text = await res.text();
-				const m = text.match(/var\s+counts\s*=\s*(\{[^;]+\})\s*;/);
-				if (!m) throw new Error("counts not found");
-				const parsed = JSON.parse(m[1]);
+				const parsed = await res.json();
 				const h = Number(parsed.h || 0);
 				const v = Number(parsed.v || 0);
 				if (!Number.isFinite(h) || !Number.isFinite(v)) throw new Error("counts invalid");

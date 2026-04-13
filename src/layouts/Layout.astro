@@ -197,7 +197,6 @@ const bannerOffset =
 		<style define:vars={{
 			configHue,
 			'page-width': `${PAGE_WIDTH}rem`,
-			'bg-src': 'url(https://p.2x.nz/api/random)',
 			'bg-enable': '1',
 			'bg-position': 'center',
 			'bg-size': 'cover',
@@ -273,6 +272,17 @@ const bannerOffset =
 			</style>
 		</noscript>
 		<div id="bg-box"></div>
+		<script>
+			(function() {
+				const bgBox = document.getElementById("bg-box");
+				if (!bgBox) return;
+				const counts = { h: 1176, v: 4711 };
+				const type = Math.random() > 0.3 ? "h" : "v";
+				const max = counts[type];
+				const n = Math.floor(Math.random() * max) + 1;
+				bgBox.style.backgroundImage = `url(https://p.2x.nz/ri/${type}/${n}.webp)`;
+			})();
+		</script>
 		<ConfigCarrier></ConfigCarrier>
 		<GlobalToaster client:only="svelte" />
         {showNewPostNotification && <NewPostNotification></NewPostNotification>}
