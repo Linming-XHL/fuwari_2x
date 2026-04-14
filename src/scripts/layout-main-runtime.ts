@@ -9,11 +9,8 @@ import { bindPostInlineDiff } from "../scripts/post-inline-diff";
 import {
 	getBgBlur,
 	getHideBg,
-	getHue,
 	setBgBlur,
 	setHideBg,
-	setHue,
-	setTheme,
 } from "../utils/setting-utils";
 
 const bannerEnabled = !!document.getElementById("banner-wrapper");
@@ -44,14 +41,6 @@ setClickOutsideToClose("search-panel", [
 	"search-bar-inside",
 	"search-switch",
 ]);
-
-function loadTheme() {
-	setTheme();
-}
-
-function loadHue() {
-	setHue(getHue());
-}
 
 function loadBgBlur() {
 	setBgBlur(getBgBlur());
@@ -118,8 +107,6 @@ function loadProfileStats() {
 }
 
 function init() {
-	loadTheme();
-	loadHue();
 	loadBgBlur();
 	showBanner();
 	syncSidebarProfileMode();

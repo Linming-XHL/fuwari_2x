@@ -15,24 +15,6 @@ export function setHue(hue: number, save = true): void {
 	document.documentElement.style.setProperty("--hue", String(hue));
 }
 
-export function getRainbowMode(): boolean {
-	const stored = localStorage.getItem("rainbow-mode");
-	return stored === "true";
-}
-
-export function setRainbowMode(enabled: boolean): void {
-	localStorage.setItem("rainbow-mode", String(enabled));
-}
-
-export function getRainbowSpeed(): number {
-	const stored = localStorage.getItem("rainbow-speed");
-	return stored ? Number.parseFloat(stored) : 5; // Default speed
-}
-
-export function setRainbowSpeed(speed: number): void {
-	localStorage.setItem("rainbow-speed", String(speed));
-}
-
 export function getBgBlur(): number {
 	const stored = localStorage.getItem("bg-blur");
 	return stored ? Number.parseInt(stored) : 4; // Default blur is 4
