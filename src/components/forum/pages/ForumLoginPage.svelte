@@ -38,7 +38,7 @@ async function submit() {
 			emitErrorToast("登录", "检测到需要二步验证，请填写 TOTP 验证码后重试。");
 			return;
 		}
-		emitSuccessToast("登录", "登录成功，正在跳转...");
+		emitSuccessToast("登录", "登录成功，正在跳转...", true);
 		window.location.href = "/forum/";
 	} catch (error) {
 		if (error instanceof ForumApiError && error.message === "TOTP_REQUIRED") {

@@ -64,6 +64,7 @@ async function submit() {
 		emitSuccessToast(
 			"注册",
 			result.message || "注册成功，请前往邮箱完成验证。",
+			true,
 		);
 		window.setTimeout(() => {
 			window.location.href = "/forum/auth/login/";

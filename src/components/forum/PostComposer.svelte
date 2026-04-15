@@ -198,6 +198,7 @@ async function submit() {
 		emitSuccessToast(
 			"发帖",
 			`${mode === "edit" ? "保存" : "发布"}成功，即将前往帖子 #${nextPostId}`,
+			true,
 		);
 		window.location.href = `/forum/post/?id=${encodeURIComponent(nextPostId)}`;
 	} catch (error) {

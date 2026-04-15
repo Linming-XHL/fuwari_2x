@@ -379,7 +379,7 @@ async function handleDeletePost() {
 	deleteBusy = true;
 	try {
 		await deleteAdminPost(post.id);
-		emitSuccessToast("帖子管理", "帖子已删除，正在返回论坛首页...");
+		emitSuccessToast("帖子管理", "帖子已删除，正在返回论坛首页...", true);
 		await new Promise((resolve) => window.setTimeout(resolve, 180));
 		navigateTo("/forum/");
 	} catch (error) {

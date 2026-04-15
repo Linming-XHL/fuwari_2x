@@ -46,7 +46,7 @@ async function submit() {
 			newPassword,
 			totpCode: totpCode.trim() || undefined,
 		});
-		emitSuccessToast("重置密码", "密码已重置，正在前往登录页...");
+		emitSuccessToast("重置密码", "密码已重置，正在前往登录页...", true);
 		window.setTimeout(() => {
 			window.location.href = "/forum/auth/login/";
 		}, 1200);
