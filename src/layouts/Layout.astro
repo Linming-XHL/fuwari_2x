@@ -13,7 +13,7 @@ import ConfigCarrier from "@components/ConfigCarrier.astro";
 import BodyThirdPartyScripts from "@components/layout/BodyThirdPartyScripts.astro";
 import DashLoaderScript from "@components/layout/DashLoaderScript.astro";
 import LiquidGlassFilter from "@components/layout/LiquidGlassFilter.astro";
-import NewPostNotification from "@components/widget/NewPostNotification.astro";
+
 import { ClientRouter } from "astro:transitions";
 import {
 	BANNER_HEIGHT,
@@ -41,7 +41,7 @@ let { title, banner, description, lang, setOGTypeArticle } = Astro.props;
 // apply a class to the body element to decide the height of the banner, only used for initial page load
 const isHomePage = pathsEqual(Astro.url.pathname, url("/"));
 const isForumRoute = Astro.url.pathname.startsWith(url("/forum/"));
-const showNewPostNotification = !isForumRoute;
+
 
 // defines global css variables
 // why doing this in Layout instead of GlobalStyles: https://github.com/withastro/astro/issues/6728#issuecomment-1502203757
@@ -223,7 +223,7 @@ const bannerOffset =
 
 		<AnimatedBackground />
 		<ConfigCarrier></ConfigCarrier>
-        {showNewPostNotification && <NewPostNotification></NewPostNotification>}
+        
 		<slot />
 
 		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
