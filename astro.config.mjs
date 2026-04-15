@@ -131,7 +131,7 @@ export default defineConfig({
 		},
 		"/wly": {
 			status: 302,
-			destination: "https://wl.awcmam.com/#/register?code=FNQwOQBM",
+			destination: "https://w1.wlylogin.com:8888/#/register?code=FNQwOQBM",
 		},
 		"/mly": {
 			status: 302,
