@@ -73,7 +73,7 @@ function handleNewComment(payload: Record<string, unknown>) {
 			"[ForumPostPage] New comment matches current post, refreshing comments...",
 		);
 		void loadComments();
-		emitSuccessToast("评论", "收到新评论，已自动刷新。");
+		emitSuccessToast("评论", "收到新评论，已自动刷新。", true);
 	} else {
 		console.log("[ForumPostPage] New comment for different post, ignoring");
 	}
