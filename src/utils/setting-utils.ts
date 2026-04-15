@@ -4,12 +4,7 @@ export function getDefaultHue(): number {
 	return Number.parseInt(configCarrier?.dataset.hue || fallback);
 }
 
-export function getHue(): number {
-	return getDefaultHue();
-}
-
-export function setHue(hue: number, save = true): void {
-	// Do not save to localStorage, always use config value
+export function setHue(hue: number): void {
 	document.documentElement.style.setProperty("--hue", String(hue));
 }
 

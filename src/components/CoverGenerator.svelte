@@ -1,6 +1,6 @@
 <script lang="ts">
 import Icon from "@iconify/svelte";
-import { getHue } from "@utils/setting-utils";
+import { getDefaultHue } from "@utils/setting-utils";
 import { onMount } from "svelte";
 
 let leftText = "鸣潮";
@@ -124,7 +124,7 @@ let exportConfig = {
 };
 
 onMount(() => {
-	hue = getHue();
+	hue = getDefaultHue();
 
 	// Set initial canvas colors
 	bgColor = "#ffffff";
