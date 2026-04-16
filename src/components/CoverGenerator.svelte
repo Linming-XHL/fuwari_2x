@@ -1516,7 +1516,6 @@ function downloadLink(url: string, filename: string) {
         background-color: transparent;
         cursor: pointer;
         position: relative;
-        transition: all 0.2s ease;
         display: inline-block;
         vertical-align: middle;
         flex-shrink: 0;
