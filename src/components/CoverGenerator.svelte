@@ -1520,6 +1520,7 @@ function downloadLink(url: string, filename: string) {
         display: inline-block;
         vertical-align: middle;
         flex-shrink: 0;
+        box-sizing: border-box;
     }
 
     :global(input[type="checkbox"]:checked) {
@@ -1530,9 +1531,8 @@ function downloadLink(url: string, filename: string) {
     :global(input[type="checkbox"]:checked::after) {
         content: "";
         position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
+        left: 2px;
+        top: 2px;
         width: 8px;
         height: 8px;
         background-color: white;
