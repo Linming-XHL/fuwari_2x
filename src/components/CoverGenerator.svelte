@@ -1502,6 +1502,43 @@ function downloadLink(url: string, filename: string) {
         /* 移除悬停效果 */
     }
 
+    /* 方形 Checkbox 样式 */
+    :global(input[type="checkbox"]) {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 0;
+        background-color: transparent;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+
+    :global(input[type="checkbox"]:checked) {
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    :global(input[type="checkbox"]:checked::after) {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 1px;
+        width: 4px;
+        height: 8px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
+
+    :global(input[type="checkbox"]:focus) {
+        outline: none;
+        box-shadow: 0 0 0 2px var(--btn-plain-bg-hover);
+    }
+
     .input-field {
         @apply px-3 py-2 rounded-lg bg-transparent border border-gray-600 focus:ring-2 focus:ring-[var(--primary)] outline-none transition-colors text-gray-100;
     }
