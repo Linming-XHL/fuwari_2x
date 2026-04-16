@@ -1377,7 +1377,134 @@ function downloadLink(url: string, filename: string) {
 </div>
 
 <style>
-    @import '../styles/cover-controls.css';
+    /* 方形滑块样式 */
+    :global(.square-range) {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        outline: none;
+        cursor: pointer;
+        border-radius: 2px;
+    }
+
+    :global(.square-range::-webkit-slider-track) {
+        width: 100%;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+    }
+
+    :global(.square-range::-moz-range-track) {
+        width: 100%;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+    }
+
+    :global(.square-range::-webkit-slider-thumb) {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        background: #59A0F9;
+        cursor: pointer;
+        border-radius: 3px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.2s ease;
+    }
+
+    :global(.square-range::-moz-range-thumb) {
+        width: 18px;
+        height: 18px;
+        background: #59A0F9;
+        cursor: pointer;
+        border-radius: 3px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.2s ease;
+    }
+
+    :global(.square-range:hover::-webkit-slider-thumb) {
+        background: #6FB0FF;
+        box-shadow: 0 0 8px rgba(89, 160, 249, 0.5);
+    }
+
+    :global(.square-range:hover::-moz-range-thumb) {
+        background: #6FB0FF;
+        box-shadow: 0 0 8px rgba(89, 160, 249, 0.5);
+    }
+
+    :global(.square-range:active::-webkit-slider-thumb) {
+        background: #85C0FF;
+        transform: scale(1.1);
+    }
+
+    :global(.square-range:active::-moz-range-thumb) {
+        background: #85C0FF;
+        transform: scale(1.1);
+    }
+
+    /* 方形开关样式 */
+    :global(.square-toggle) {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+    }
+
+    :global(.square-toggle input) {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    :global(.square-toggle-slider) {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.1);
+        transition: 0.3s;
+        border-radius: 3px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    :global(.square-toggle-slider:before) {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 2px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    :global(.square-toggle input:checked + .square-toggle-slider) {
+        background-color: #59A0F9;
+        border-color: #59A0F9;
+    }
+
+    :global(.square-toggle input:focus + .square-toggle-slider) {
+        box-shadow: 0 0 0 2px rgba(89, 160, 249, 0.3);
+    }
+
+    :global(.square-toggle input:checked + .square-toggle-slider:before) {
+        transform: translateX(20px);
+    }
+
+    :global(.square-toggle:hover .square-toggle-slider) {
+        background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(.square-toggle input:checked:hover + .square-toggle-slider) {
+        background-color: #6FB0FF;
+    }
 
     .input-field {
         @apply px-3 py-2 rounded-lg bg-transparent border border-gray-600 focus:ring-2 focus:ring-[var(--primary)] outline-none transition-colors text-gray-100;
