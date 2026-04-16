@@ -1292,7 +1292,7 @@ function downloadLink(url: string, filename: string) {
                         <div class="flex justify-between text-xs text-gray-400">
                             <label>缩放倍率</label>
                         </div>
-                        <div class="grid grid-cols-4 gap-1">
+                        <div class="flex flex-wrap items-center gap-2 p-2 border border-[var(--line-color)] rounded-lg">
                             {#each [1, 2, 3, 4] as scale}
                                 <label class="flex items-center gap-2 px-3 py-2 border rounded cursor-pointer transition-all text-xs {exportConfig.scales.includes(scale) ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)]' : 'border-[var(--line-color)] bg-transparent text-gray-300'}">
                                     <input 
