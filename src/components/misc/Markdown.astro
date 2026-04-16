@@ -48,6 +48,8 @@ const transformMermaidBlocks = () => {
     const allPres = document.querySelectorAll(".custom-md pre");
     console.log("[Mermaid Debug] 找到的 pre 元素数量:", allPres.length);
     
+    const createdContainers: HTMLElement[] = [];
+    
     allPres.forEach((pre, index) => {
         console.log(`[Mermaid Debug] 处理第 ${index + 1} 个 pre 元素`);
         
@@ -109,32 +111,25 @@ const transformMermaidBlocks = () => {
         
         (pre as HTMLElement).dataset.mermaidProcessed = "true";
         pre.replaceWith(container);
+        createdContainers.push(container);
         console.log(`[Mermaid Debug] 第 ${index + 1} 个 pre 已替换为 mermaid 容器`);
         console.log(`[Mermaid Debug] 第 ${index + 1} 个 mermaid 容器的新父元素:`, container.parentElement);
         console.log(`[Mermaid Debug] 第 ${index + 1} 个 mermaid 容器的新父元素 className:`, container.parentElement?.className);
     });
     
     console.log("[Mermaid Debug] mermaid 代码块转换完成");
+    return createdContainers;
 };
 
 const renderMermaidBlocks = async () => {
     console.log("[Mermaid Debug] 开始渲染 mermaid 图表");
-    transformMermaidBlocks();
+    const createdContainers = transformMermaidBlocks();
     
-    console.log("[Mermaid Debug] 转换完成，开始查找 .mermaid 元素");
-    console.log("[Mermaid Debug] 查找选择器: .custom-md .mermaid");
+    console.log("[Mermaid Debug] 转换完成，创建的容器数量:", createdContainers?.length || 0);
+    console.log("[Mermaid Debug] 创建的容器:", createdContainers);
     
-    const mermaidNodes = document.querySelectorAll(".custom-md .mermaid");
-    console.log("[Mermaid Debug] 找到的 .mermaid 元素数量:", mermaidNodes.length);
-    console.log("[Mermaid Debug] 找到的 .mermaid 元素:", mermaidNodes);
-    
-    // 尝试更宽泛的选择器
-    const allMermaidNodes = document.querySelectorAll(".mermaid");
-    console.log("[Mermaid Debug] 所有 .mermaid 元素数量:", allMermaidNodes.length);
-    console.log("[Mermaid Debug] 所有 .mermaid 元素:", allMermaidNodes);
-    
-    if (!mermaidNodes.length) {
-        console.log("[Mermaid Debug] 没有找到 .custom-md .mermaid 元素，结束渲染");
+    if (!createdContainers || !createdContainers.length) {
+        console.log("[Mermaid Debug] 没有创建 mermaid 容器，结束渲染");
         return;
     }
     
@@ -145,7 +140,7 @@ const renderMermaidBlocks = async () => {
     try {
         console.log("[Mermaid Debug] 开始执行 mermaid.run()");
         await mermaid.run({
-            nodes: Array.from(mermaidNodes),
+            nodes: createdContainers,
         });
         console.log("[Mermaid Debug] mermaid.run() 执行成功");
     } catch (error) {
