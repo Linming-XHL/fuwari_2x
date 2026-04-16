@@ -97,15 +97,20 @@ const wrapMarkdownTables = () => {
     });
 };
 
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-        wrapMarkdownTables();
-        void renderMermaidBlocks();
-    });
-} else {
+const initMarkdown = () => {
     wrapMarkdownTables();
     void renderMermaidBlocks();
+};
+
+// 初始加载
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initMarkdown);
+} else {
+    initMarkdown();
 }
+
+// SPA 导航后重新初始化
+document.addEventListener("astro:page-load", initMarkdown);
 
 document.addEventListener("click", function (e: MouseEvent) {
     const target = e.target as Element | null;
