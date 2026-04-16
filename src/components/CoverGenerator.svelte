@@ -1525,13 +1525,12 @@ function downloadLink(url: string, filename: string) {
     :global(input[type="checkbox"]:checked::after) {
         content: "";
         position: absolute;
-        left: 4px;
-        top: 1px;
-        width: 4px;
+        left: 3px;
+        top: 3px;
+        width: 8px;
         height: 8px;
-        border: solid white;
-        border-width: 0 2px 2px 0;
-        transform: rotate(45deg);
+        background-color: white;
+        border-radius: 0;
     }
 
     :global(input[type="checkbox"]:focus) {
