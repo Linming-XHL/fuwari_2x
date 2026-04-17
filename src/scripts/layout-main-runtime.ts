@@ -140,6 +140,11 @@ function loadProfileStats() {
 		return;
 	}
 
+	// 如果文章列表排序脚本已经加载了全站访问量，跳过
+	if ((window as any).__SITE_VIEWS_LOADED__) {
+		return;
+	}
+
 	fetch("https://t.2x.nz/share?pathname=/")
 		.then((response) => {
 			if (!response.ok) return null;

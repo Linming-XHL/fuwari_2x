@@ -39,9 +39,9 @@ class PostListManager {
 	}
 
 	private async loadViewsData() {
-		// 批量获取所有文章的访问量
+		// 批量获取所有文章的访问量（包含全站访问量）
 		try {
-			const pathnames = this.posts.map((post) => `/posts/${post.id}/`);
+			const pathnames = ["/", ...this.posts.map((post) => `/posts/${post.id}/`)];
 			const res = await fetch("https://t.2x.nz/batch", {
 				method: "POST",
 				headers: {
@@ -52,16 +52,27 @@ class PostListManager {
 
 			if (res.ok) {
 				const views: number[] = await res.json();
+				
+				// 第一个是全站访问量
+				const siteViews = views[0] || 0;
+				const viewsElement = document.getElementById("site-views");
+				const wrapper = document.getElementById("site-views-wrapper");
+				if (viewsElement && wrapper) {
+					viewsElement.textContent = siteViews.toString();
+					wrapper.style.display = "grid";
+				}
+				
+				// 后续是文章访问量
 				this.posts.forEach((post, index) => {
-					const viewCount = views[index] || 0;
+					const viewCount = views[index + 1] || 0;
 					this.viewsData.set(post.id, viewCount);
 					
 					// 同时更新 PostMeta 组件的显示
-					const wrapper = document.getElementById(`page-views-wrapper-${post.id}`);
-					const viewsElement = document.getElementById(`page-views-${post.id}`);
-					if (wrapper && viewsElement) {
-						viewsElement.textContent = `${viewCount} 次`;
-						wrapper.style.display = 'flex';
+					const postWrapper = document.getElementById(`page-views-wrapper-${post.id}`);
+					const postViewsElement = document.getElementById(`page-views-${post.id}`);
+					if (postWrapper && postViewsElement) {
+						postViewsElement.textContent = `${viewCount} 次`;
+						postWrapper.style.display = 'flex';
 					}
 				});
 			} else {
@@ -78,8 +89,9 @@ class PostListManager {
 		}
 
 		this.viewsLoaded = true;
-		// 标记访问量已加载，防止 PostMeta 重复请求
+		// 标记访问量已加载，防止 PostMeta 和 loadProfileStats 重复请求
 		(window as any).__VIEWS_FETCHED__ = true;
+		(window as any).__SITE_VIEWS_LOADED__ = true;
 	}
 
 	private bindEvents() {
