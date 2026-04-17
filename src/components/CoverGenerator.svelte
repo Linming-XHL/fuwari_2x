@@ -1,7 +1,9 @@
 <script lang="ts">
-import Icon from "@iconify/svelte";
-import { getDefaultHue } from "@utils/setting-utils";
-import { onMount } from "svelte";
+ import Icon from "@iconify/svelte";
+ import { siteConfig } from "@/config";
+ import { onMount } from "svelte";
+
+ export let hue = siteConfig.themeColor.hue;
 
 let leftText = "鸣潮";
 let rightText = "牛逼";
@@ -67,7 +69,6 @@ function hexToRgba(hex: string, alpha: number) {
 }
 
 // Theme state for UI only
-let hue = 250;
 // Icon Background State
 let iconBgEnabled = false;
 let iconBgRadius = 20; // 0 to 50 (50% is circle)
@@ -124,8 +125,6 @@ let exportConfig = {
 };
 
 onMount(() => {
-	hue = getDefaultHue();
-
 	// Set initial canvas colors
 	bgColor = "#ffffff";
 	color = "#000000";

@@ -6,11 +6,9 @@ import "../styles/prism-custom.css";
 import "../styles/main.css";
 import "../styles/markdown.css";
 import "../styles/markdown-extend.styl";
-import "../styles/display-settings.css";
 
 import { profileConfig, siteConfig } from "@/config";
 import AnimatedBackground from "@components/AnimatedBackground.astro";
-import ConfigCarrier from "@components/ConfigCarrier.astro";
 import BodyThirdPartyScripts from "@components/layout/BodyThirdPartyScripts.astro";
 import DashLoaderScript from "@components/layout/DashLoaderScript.astro";
 import LiquidGlassFilter from "@components/layout/LiquidGlassFilter.astro";
@@ -214,8 +212,7 @@ const bannerOffset =
 
 
 		<AnimatedBackground />
-		<ConfigCarrier></ConfigCarrier>
-        
+
 		<slot />
 
 		<DashLoaderScript />

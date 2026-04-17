@@ -9,13 +9,15 @@ export const toolMeta = {
 import PageCardHeader from "@components/misc/PageCardHeader.astro";
 import CoverGenerator from "@components/CoverGenerator.svelte";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { siteConfig } from "@/config";
 
 const title = "封面生成";
+const hue = siteConfig.themeColor.hue;
 ---
 
 <MainGridLayout title={title}>
 	<div class="p-6 md:p-8 border-b border-white/10">
 		<PageCardHeader title={title} icon="material-symbols:image-rounded" pathname="/cover/" />
-		<CoverGenerator client:visible />
+		<CoverGenerator client:visible hue={hue} />
 	</div>
 </MainGridLayout>

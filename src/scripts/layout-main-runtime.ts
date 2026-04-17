@@ -6,12 +6,6 @@ import {
 	MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
 } from "../constants/constants";
 import { bindPostInlineDiff } from "../scripts/post-inline-diff";
-import {
-	getBgBlur,
-	getHideBg,
-	setBgBlur,
-	setHideBg,
-} from "../utils/setting-utils";
 
 const bannerEnabled = !!document.getElementById("banner-wrapper");
 
@@ -30,10 +24,6 @@ function setClickOutsideToClose(panel: string, ignores: string[]) {
 		panelDom.classList.add("float-panel-closed");
 	});
 }
-setClickOutsideToClose("display-setting", [
-	"display-setting",
-	"display-settings-switch",
-]);
 setClickOutsideToClose("nav-menu-panel", ["nav-menu-panel", "nav-menu-switch"]);
 setClickOutsideToClose("search-panel", [
 	"search-panel",
@@ -42,11 +32,6 @@ setClickOutsideToClose("search-panel", [
 	"search-bar-inside",
 	"search-switch",
 ]);
-
-function loadBgBlur() {
-	setBgBlur(getBgBlur());
-	setHideBg(getHideBg());
-}
 
 function showBanner() {
 	if (!siteConfig.banner.enable) return;
@@ -156,7 +141,6 @@ function loadProfileStats() {
 }
 
 function init() {
-	loadBgBlur();
 	showBanner();
 	syncSidebarProfileMode();
 	loadProfileStats();
