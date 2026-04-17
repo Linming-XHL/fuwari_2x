@@ -27,11 +27,8 @@ class PostListManager {
 
 		this.posts = (window as any).__PAGE_POSTS_DATA__ || [];
 		this.cacheArticles();
-		this.loadState();
 		this.bindEvents();
-		this.loadViewsData().then(() => {
-			this.render();
-		});
+		this.loadViewsData();
 	}
 
 	private cacheArticles() {
@@ -64,27 +61,6 @@ class PostListManager {
 		this.viewsLoaded = true;
 	}
 
-	private loadState() {
-		const saved = localStorage.getItem("post-sort-state");
-		if (saved) {
-			try {
-				const state = JSON.parse(saved);
-				this.currentSort = state.type || "date";
-				this.currentOrder = state.order || "desc";
-			} catch (e) {
-				// ignore
-			}
-		}
-	}
-
-	private saveState() {
-		const state = {
-			type: this.currentSort,
-			order: this.currentOrder,
-		};
-		localStorage.setItem("post-sort-state", JSON.stringify(state));
-	}
-
 	private bindEvents() {
 		document.addEventListener("click", (e) => {
 			const target = e.target as HTMLElement;
@@ -109,11 +85,15 @@ class PostListManager {
 	private setSort(type: SortType) {
 		if (this.currentSort !== type) {
 			this.currentSort = type;
-			this.saveState();
 			
-			// 如果切换到访问量排序但数据还未加载完成，显示加载提示
+			// 如果切换到访问量排序但数据还未加载完成，等待加载
 			if (type === "views" && !this.viewsLoaded) {
-				this.showLoadingHint();
+				const checkInterval = setInterval(() => {
+					if (this.viewsLoaded) {
+						clearInterval(checkInterval);
+						this.render();
+					}
+				}, 100);
 			} else {
 				this.render();
 			}
@@ -122,22 +102,7 @@ class PostListManager {
 
 	private toggleOrder() {
 		this.currentOrder = this.currentOrder === "asc" ? "desc" : "asc";
-		this.saveState();
 		this.render();
-	}
-
-	private showLoadingHint() {
-		const container = document.getElementById("post-list-container");
-		if (!container) return;
-		
-		container.style.opacity = "0.5";
-		// 等待数据加载完成后再渲染
-		const checkInterval = setInterval(() => {
-			if (this.viewsLoaded) {
-				clearInterval(checkInterval);
-				this.render();
-			}
-		}, 100);
 	}
 
 	private getSortedIndices(): number[] {
