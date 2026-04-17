@@ -79,7 +79,8 @@ const className = Astro.props.class;
 
     // 批量获取访问量
     async function batchFetchPageViews() {
-        if (window.__VIEWS_FETCHED__) return;
+        // 如果已经获取过或者有排序脚本在处理，跳过
+        if (window.__VIEWS_FETCHED__ || window.__PAGE_POSTS_DATA__) return;
         window.__VIEWS_FETCHED__ = true;
 
         const slugs = window.__VIEWS_QUEUE__;
