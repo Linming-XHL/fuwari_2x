@@ -53,8 +53,10 @@ class PostListManager {
 			if (res.ok) {
 				const views: number[] = await res.json();
 				
-				// 第一个是全站访问量
+				// 第一个是全站访问量，存储到全局变量
 				const siteViews = views[0] || 0;
+				(window as any).__SITE_VIEWS__ = siteViews;
+				
 				const viewsElement = document.getElementById("site-views");
 				const wrapper = document.getElementById("site-views-wrapper");
 				if (viewsElement && wrapper) {

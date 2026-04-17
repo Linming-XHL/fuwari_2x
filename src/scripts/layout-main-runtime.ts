@@ -140,11 +140,26 @@ function loadProfileStats() {
 		return;
 	}
 
-	// 如果文章列表排序脚本已经加载了全站访问量，跳过
-	if ((window as any).__SITE_VIEWS_LOADED__) {
+	// 如果文章列表排序脚本已经加载了全站访问量，直接使用
+	if ((window as any).__SITE_VIEWS__ !== undefined) {
+		viewsElement.textContent = (window as any).__SITE_VIEWS__.toString();
+		if (wrapper) wrapper.style.display = "grid";
 		return;
 	}
 
+	// 如果标记已设置但值还没准备好，等待一下
+	if ((window as any).__SITE_VIEWS_LOADED__) {
+		const checkInterval = setInterval(() => {
+			if ((window as any).__SITE_VIEWS__ !== undefined) {
+				clearInterval(checkInterval);
+				viewsElement.textContent = (window as any).__SITE_VIEWS__.toString();
+				if (wrapper) wrapper.style.display = "grid";
+			}
+		}, 50);
+		return;
+	}
+
+	// 否则发起单独请求（非文章列表页）
 	fetch("https://t.2x.nz/share?pathname=/")
 		.then((response) => {
 			if (!response.ok) return null;
